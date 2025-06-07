@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Search, Menu } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDocs } from "@/contexts/DocsContext";
@@ -16,53 +16,56 @@ const Header = ({ onToggleSidebar }: HeaderProps) => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   return (
-    <header className="h-16 border-b border-border/50 bg-background/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+    <header className="h-16 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
       <div className="h-full flex items-center justify-between px-6">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={onToggleSidebar}
-            className="lg:hidden hover:bg-primary/10 transition-all duration-200 hover:scale-105"
+            className="lg:hidden"
           >
-            <Menu className="h-5 w-5" />
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
           </Button>
           
-          <div className="flex items-center gap-3 animate-fade-in">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary via-primary/80 to-primary/60 rounded-xl flex items-center justify-center shadow-lg floating-element">
-              <span className="text-primary-foreground font-bold text-lg">خ</span>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">خ</span>
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-gradient leading-tight">
-                مستندات خودکارینو
-              </h1>
-              <span className="text-xs text-muted-foreground">سیستم راهنمای جامع</span>
-            </div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              مستندات خودکارینو
+            </h1>
           </div>
         </div>
 
-        <div className="animate-fade-in-up">
-          <TabNavigation />
-        </div>
+        <TabNavigation />
 
-        <div className="flex items-center gap-4 animate-fade-in">
-          <div className={`relative transition-all duration-300 ${isSearchFocused ? 'w-80 scale-105' : 'w-64'}`}>
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors duration-200" />
+        <div className="flex items-center gap-4">
+          <div className={`relative transition-all duration-200 ${isSearchFocused ? 'w-80' : 'w-64'}`}>
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="جستجو در مستندات..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setIsSearchFocused(false)}
-              className={`pr-10 bg-muted/30 border-0 focus:bg-background/80 transition-all duration-300 ${
-                isSearchFocused ? 'shadow-glow ring-2 ring-primary/20' : ''
-              }`}
+              className="pr-10 bg-muted/50 border-0 focus:bg-background transition-all duration-200"
             />
           </div>
           
-          <div className="transform transition-all duration-200 hover:scale-105">
-            <VersionSelector />
-          </div>
+          <VersionSelector />
         </div>
       </div>
     </header>
