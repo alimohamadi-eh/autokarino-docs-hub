@@ -119,13 +119,13 @@ emails.forEach(email => {
   };
 
   return (
-    <main className="flex-1 overflow-auto">
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-6">
+    <main className="flex-1 overflow-auto bg-gradient-to-br from-background via-background to-accent/5">
+      <div className="max-w-4xl mx-auto p-8">
+        <div className="mb-8 animate-fade-in">
           <Breadcrumb />
         </div>
         
-        <article className="prose prose-lg max-w-none">
+        <article className="prose prose-lg max-w-none animate-fade-in-up bg-card/50 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-border/50">
           <MarkdownRenderer content={getPageContent()} />
         </article>
       </div>
