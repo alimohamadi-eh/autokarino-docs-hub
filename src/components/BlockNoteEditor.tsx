@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
-import { BlockNoteView, useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteViewRaw, useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/react/style.css";
 
@@ -102,7 +102,7 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
       </div>
 
       <div className="prose prose-lg max-w-none" dir="rtl">
-        <BlockNoteView
+        <BlockNoteViewRaw
           editor={editor}
           onChange={handleEditorChange}
           theme="light"
