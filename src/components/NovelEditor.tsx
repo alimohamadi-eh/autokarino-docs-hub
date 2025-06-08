@@ -1,5 +1,6 @@
 
-import { Editor } from "novel";
+
+import { EditorInstance } from "novel";
 import { useState } from "react";
 
 interface NovelEditorProps {
@@ -31,7 +32,7 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
       </div>
 
       <div className="prose prose-lg max-w-none">
-        <Editor
+        <EditorInstance
           defaultValue=""
           onUpdate={(editor) => {
             if (editor) {
@@ -53,3 +54,4 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
 };
 
 export default NovelEditor;
+
