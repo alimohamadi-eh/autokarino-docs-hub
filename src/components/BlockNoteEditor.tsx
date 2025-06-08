@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
-import { BlockNoteView, useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteViewRaw, useCreateBlockNote } from "@blocknote/react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -175,11 +174,13 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
       </div>
 
       <div className="prose prose-lg max-w-none" dir="rtl">
-        <BlockNoteView
-          editor={editor}
-          onChange={handleEditorChange}
-          theme="light"
-        />
+        {editor && (
+          <BlockNoteViewRaw
+            editor={editor}
+            onChange={handleEditorChange}
+            theme="light"
+          />
+        )}
       </div>
       
       {hasUnsavedChanges && (
