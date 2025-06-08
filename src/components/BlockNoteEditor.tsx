@@ -1,7 +1,7 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
-import { BlockNoteViewRaw, useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteView, useCreateBlockNote } from "@blocknote/react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +19,6 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [currentContent, setCurrentContent] = useState(content);
   const { toast } = useToast();
-  const editorRef = useRef<BlockNoteEditor | null>(null);
 
   // تبدیل محتوای HTML/Markdown به فرمت BlockNote
   const parseContentToBlocks = (htmlContent: string): PartialBlock[] => {
@@ -27,7 +26,7 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
       return [
         {
           type: "paragraph",
-          content: [{ type: "text", text: "محتوای خود را اینجا بنویسید...", styles: {} }],
+          content: "محتوای خود را اینجا بنویسید...",
         },
       ];
     }
@@ -46,13 +45,13 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
             props: {
               level: Math.min(level, 3) as 1 | 2 | 3,
             },
-            content: [{ type: "text", text, styles: {} }],
+            content: text,
           };
         }
         
         return {
           type: "paragraph",
-          content: [{ type: "text", text: trimmedLine, styles: {} }],
+          content: trimmedLine,
         };
       });
     } catch (error) {
@@ -60,14 +59,14 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
       return [
         {
           type: "paragraph",
-          content: [{ type: "text", text: htmlContent, styles: {} }],
+          content: htmlContent,
         },
       ];
     }
   };
 
   // تبدیل blocks به فرمت HTML/Markdown
-  const convertBlocksToHTML = (blocks: PartialBlock[]): string => {
+  const convertBlocksToHTML = async (blocks: PartialBlock[]): Promise<string> => {
     try {
       return blocks.map(block => {
         if (!block || typeof block !== 'object') {
@@ -114,14 +113,12 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
     initialContent: parseContentToBlocks(content),
   });
 
-  editorRef.current = editor;
-
   // مدیریت تغییرات editor
-  const handleEditorChange = () => {
+  const handleEditorChange = async () => {
     if (editor) {
       try {
         const blocks = editor.document;
-        const htmlContent = convertBlocksToHTML(blocks);
+        const htmlContent = await convertBlocksToHTML(blocks);
         setCurrentContent(htmlContent);
         setHasUnsavedChanges(true);
       } catch (error) {
@@ -178,13 +175,11 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
       </div>
 
       <div className="prose prose-lg max-w-none" dir="rtl">
-        {editor && (
-          <BlockNoteViewRaw
-            editor={editor}
-            onChange={handleEditorChange}
-            theme="light"
-          />
-        )}
+        <BlockNoteView
+          editor={editor}
+          onChange={handleEditorChange}
+          theme="light"
+        />
       </div>
       
       {hasUnsavedChanges && (
