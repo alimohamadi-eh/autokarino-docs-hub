@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import RichTextEditor from "./RichTextEditor";
 
 interface BlockNoteEditorProps {
   content: string;
@@ -16,7 +17,6 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
   const [currentContent, setCurrentContent] = useState(content);
   const { toast } = useToast();
 
-  // ذخیره تغییرات
   const handleSave = () => {
     onChange(currentContent);
     setHasUnsavedChanges(false);
@@ -41,6 +41,7 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
             onChange={(e) => onTitleChange(e.target.value)}
             className="flex-1 text-3xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
             placeholder="عنوان صفحه را وارد کنید..."
+            dir="rtl"
           />
           <Button 
             onClick={handleSave}
@@ -55,17 +56,11 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
         <div className="h-px bg-gradient-to-l from-border to-transparent" />
       </div>
 
-      <div className="prose prose-lg max-w-none" dir="rtl">
-        <div className="min-h-96 border rounded-md p-4">
-          <textarea
-            value={currentContent}
-            onChange={(e) => handleContentChange(e.target.value)}
-            className="w-full min-h-96 p-4 border-none outline-none resize-none text-right bg-transparent font-mono text-sm leading-6"
-            dir="rtl"
-            placeholder="محتوای خود را اینجا بنویسید..."
-          />
-        </div>
-      </div>
+      <RichTextEditor
+        content={currentContent}
+        onChange={handleContentChange}
+        placeholder="محتوای خود را اینجا بنویسید... برای فرمت‌بندی روی متن کلیک کنید"
+      />
       
       {hasUnsavedChanges && (
         <div className="fixed bottom-4 left-4 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded-md">

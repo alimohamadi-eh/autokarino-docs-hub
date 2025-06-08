@@ -2,26 +2,18 @@
 import { useDocs } from "@/contexts/DocsContext";
 import { cn } from "@/lib/utils";
 import NavigationTree from "./NavigationTree";
-import { Plus } from "lucide-react";
+import PageCreationModal from "./PageCreationModal";
+import { Plus, FolderPlus, FileText } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
   isOpen: boolean;
 }
 
 const Sidebar = ({ isOpen }: SidebarProps) => {
-  const { activeTab, navigationData, isEditMode, createNewPage, setActivePage } = useDocs();
-  const [newPageTitle, setNewPageTitle] = useState("");
-  const [showNewPageForm, setShowNewPageForm] = useState(false);
-
-  const handleCreatePage = () => {
-    if (newPageTitle.trim()) {
-      const newSlug = createNewPage(newPageTitle, activeTab);
-      setActivePage(newSlug);
-      setNewPageTitle("");
-      setShowNewPageForm(false);
-    }
-  };
+  const { activeTab, navigationData, isEditMode } = useDocs();
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   return (
     <aside
@@ -39,57 +31,40 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
               {activeTab === 'app' && '📱 راهنمای اپلیکیشن'}
             </h2>
             {isEditMode && (
-              <button
-                onClick={() => setShowNewPageForm(!showNewPageForm)}
-                className="p-1 rounded-md hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors"
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                variant="ghost"
+                size="sm"
+                className="p-1 h-8 w-8"
                 title="صفحه جدید"
               >
                 <Plus className="h-4 w-4" />
-              </button>
+              </Button>
             )}
           </div>
           <div className="h-px bg-gradient-to-l from-sidebar-border to-transparent" />
         </div>
 
-        {isEditMode && showNewPageForm && (
-          <div className="mb-4 p-3 bg-sidebar-accent/30 rounded-lg">
-            <input
-              type="text"
-              value={newPageTitle}
-              onChange={(e) => setNewPageTitle(e.target.value)}
-              placeholder="عنوان صفحه جدید..."
-              className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreatePage();
-                } else if (e.key === 'Escape') {
-                  setShowNewPageForm(false);
-                  setNewPageTitle("");
-                }
-              }}
-              autoFocus
-            />
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={handleCreatePage}
-                className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
-              >
-                ایجاد
-              </button>
-              <button
-                onClick={() => {
-                  setShowNewPageForm(false);
-                  setNewPageTitle("");
-                }}
-                className="px-3 py-1 text-xs bg-muted text-muted-foreground rounded hover:bg-muted/80 transition-colors"
-              >
-                لغو
-              </button>
-            </div>
+        {isEditMode && (
+          <div className="mb-4 space-y-2">
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              صفحه جدید
+            </Button>
           </div>
         )}
 
         <NavigationTree items={navigationData[activeTab] || []} />
+
+        <PageCreationModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+        />
       </div>
     </aside>
   );

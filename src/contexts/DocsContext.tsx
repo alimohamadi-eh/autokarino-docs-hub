@@ -29,7 +29,7 @@ interface DocsContextType {
   setIsEditMode: (mode: boolean) => void;
   pageContents: Record<string, PageContent>;
   updatePageContent: (slug: string, content: string, title?: string) => void;
-  createNewPage: (title: string, tab: string, parentSlug?: string) => string;
+  createNewPage: (title: string, tab: string, parentSlug?: string, type: "page" | "folder" = "page") => string;
   deletePage: (slug: string) => void;
 }
 
@@ -216,48 +216,68 @@ emails.forEach(email => {
     }));
   };
 
-  const createNewPage = (title: string, tab: string, parentSlug?: string): string => {
+  const createNewPage = (title: string, tab: string, parentSlug?: string, type: "page" | "folder" = "page"): string => {
     const slug = title.toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^\w\-]/g, '')
       .replace(/[\u0600-\u06FF]/g, (match) => {
-        // Keep Persian characters and convert them safely
         return encodeURIComponent(match).replace(/%/g, '');
       });
     
     const finalSlug = `${slug}-${Date.now()}`;
     
-    const newPage: PageContent = {
-      title,
-      slug: finalSlug,
-      tab,
-      content: `# ${title}
+    if (type === "page") {
+      const newPage: PageContent = {
+        title,
+        slug: finalSlug,
+        tab,
+        content: `<h1>${title}</h1><p>این صفحه جدید ایجاد شده است. محتوای خود را اینجا بنویسید...</p><h2>شروع کنید</h2><p>از ویرایشگر متن برای نوشتن محتوای خود استفاده کنید.</p>`
+      };
 
-این صفحه جدید ایجاد شده است. محتوای خود را اینجا بنویسید...
-
-## شروع کنید
-
-از ویرایشگر BlockNote برای نوشتن محتوای خود استفاده کنید.`
-    };
-
-    setPageContents(prev => ({
-      ...prev,
-      [finalSlug]: newPage
-    }));
+      setPageContents(prev => ({
+        ...prev,
+        [finalSlug]: newPage
+      }));
+    }
 
     // Add to navigation structure
     const newNavItem: NavigationItem = {
       title,
-      slug: finalSlug
+      slug: finalSlug,
+      ...(type === "folder" && { children: [] })
     };
 
-    setNavigationData(prev => ({
-      ...prev,
-      [tab]: [
-        ...prev[tab] || [],
-        newNavItem
-      ]
-    }));
+    setNavigationData(prev => {
+      const newNav = { ...prev };
+      
+      if (parentSlug) {
+        // Add as child to parent
+        const addToParent = (items: NavigationItem[]): NavigationItem[] => {
+          return items.map(item => {
+            if (item.slug === parentSlug) {
+              return {
+                ...item,
+                children: [...(item.children || []), newNavItem]
+              };
+            }
+            if (item.children) {
+              return {
+                ...item,
+                children: addToParent(item.children)
+              };
+            }
+            return item;
+          });
+        };
+        
+        newNav[tab] = addToParent(newNav[tab] || []);
+      } else {
+        // Add to root level
+        newNav[tab] = [...(newNav[tab] || []), newNavItem];
+      }
+      
+      return newNav;
+    });
 
     return finalSlug;
   };
@@ -269,19 +289,30 @@ emails.forEach(email => {
       return newContents;
     });
 
-    // Remove from navigation
+    // Remove from navigation recursively
     setNavigationData(prev => {
       const newNav = { ...prev };
+      
+      const removeFromTree = (items: NavigationItem[]): NavigationItem[] => {
+        return items
+          .filter(item => item.slug !== slug)
+          .map(item => ({
+            ...item,
+            children: item.children ? removeFromTree(item.children) : undefined
+          }));
+      };
+
       Object.keys(newNav).forEach(tab => {
-        newNav[tab] = newNav[tab].filter(item => item.slug !== slug);
-        newNav[tab].forEach(item => {
-          if (item.children) {
-            item.children = item.children.filter(child => child.slug !== slug);
-          }
-        });
+        newNav[tab] = removeFromTree(newNav[tab]);
       });
+      
       return newNav;
     });
+
+    // If deleted page was active, switch to intro
+    if (activePage === slug) {
+      setActivePage('intro');
+    }
   };
 
   const value: DocsContextType = {
