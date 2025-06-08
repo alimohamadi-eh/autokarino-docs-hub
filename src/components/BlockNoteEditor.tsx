@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
 import { BlockNoteViewRaw, useCreateBlockNote } from "@blocknote/react";
@@ -12,8 +13,6 @@ interface BlockNoteEditorProps {
 }
 
 const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: BlockNoteEditorProps) => {
-  const [initialContent, setInitialContent] = useState<PartialBlock[]>([]);
-
   // Parse content to blocks format for BlockNote
   const parseContentToBlocks = (htmlContent: string): PartialBlock[] => {
     if (!htmlContent || htmlContent.trim() === '') {
@@ -56,15 +55,23 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
     }).join('\n\n');
   };
 
+  // Initialize with parsed content or default content
+  const initialBlocks = parseContentToBlocks(content);
+
   const editor = useCreateBlockNote({
-    initialContent: initialContent,
+    initialContent: initialBlocks,
   });
 
   useEffect(() => {
-    const blocks = parseContentToBlocks(content);
-    setInitialContent(blocks);
-    if (editor && blocks.length > 0) {
-      editor.replaceBlocks(editor.document, blocks);
+    if (editor) {
+      const blocks = parseContentToBlocks(content);
+      // Only replace blocks if content has actually changed
+      const currentContent = convertBlocksToHTML(editor.document);
+      const newContent = convertBlocksToHTML(blocks);
+      
+      if (currentContent !== newContent) {
+        editor.replaceBlocks(editor.document, blocks);
+      }
     }
   }, [content, editor]);
 
