@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
-import { BlockNoteView } from "@blocknote/react";
+import { useCreateBlockNote, BlockNoteView } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/react/style.css";
 
@@ -13,20 +13,18 @@ interface NovelEditorProps {
 }
 
 const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorProps) => {
-  const [editor] = useState(() =>
-    BlockNoteEditor.create({
-      initialContent: content ? [
-        {
-          type: "paragraph",
-          content: content,
-        } as PartialBlock
-      ] : undefined,
-    })
-  );
+  const editor = useCreateBlockNote({
+    initialContent: content ? [
+      {
+        type: "paragraph",
+        content: content,
+      } as PartialBlock
+    ] : undefined,
+  });
 
   useEffect(() => {
-    const handleChange = () => {
-      const html = editor.blocksToHTMLLossy(editor.document);
+    const handleChange = async () => {
+      const html = await editor.blocksToHTMLLossy(editor.document);
       onChange(html);
     };
 
