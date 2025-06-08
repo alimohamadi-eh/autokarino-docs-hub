@@ -1,5 +1,5 @@
 
-import { EditorRoot, EditorContent, type JSONContent } from "novel";
+import { Editor } from "novel";
 import { useState } from "react";
 
 interface NovelEditorProps {
@@ -31,21 +31,22 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
       </div>
 
       <div className="prose prose-lg max-w-none">
-        <EditorRoot>
-          <EditorContent
-            onUpdate={({ editor }) => {
+        <Editor
+          defaultValue=""
+          onUpdate={(editor) => {
+            if (editor) {
               const html = editor.getHTML();
               handleContentChange(html);
-            }}
-            className="min-h-[500px]"
-            editorProps={{
-              attributes: {
-                class: "prose prose-lg max-w-none focus:outline-none",
-                dir: "rtl"
-              }
-            }}
-          />
-        </EditorRoot>
+            }
+          }}
+          className="min-h-[500px]"
+          editorProps={{
+            attributes: {
+              class: "prose prose-lg max-w-none focus:outline-none",
+              dir: "rtl"
+            }
+          }}
+        />
       </div>
     </div>
   );
