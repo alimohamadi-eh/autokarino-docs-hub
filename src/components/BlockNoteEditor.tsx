@@ -26,7 +26,7 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
       return [
         {
           type: "paragraph",
-          content: "محتوای خود را اینجا بنویسید...",
+          content: [{ type: "text", text: "محتوای خود را اینجا بنویسید..." }],
         },
       ];
     }
@@ -44,13 +44,13 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
             props: {
               level: Math.min(level, 3) as 1 | 2 | 3,
             },
-            content: text,
+            content: [{ type: "text", text }],
           };
         }
         
         return {
           type: "paragraph",
-          content: trimmedLine,
+          content: [{ type: "text", text: trimmedLine }],
         };
       });
     } catch (error) {
@@ -58,7 +58,7 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
       return [
         {
           type: "paragraph",
-          content: htmlContent,
+          content: [{ type: "text", text: htmlContent }],
         },
       ];
     }
@@ -79,14 +79,16 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
           if (Array.isArray(content)) {
             return content.map(item => {
               if (typeof item === 'string') return item;
-              if (item && typeof item === 'object' && item.text) {
-                return item.text;
+              if (item && typeof item === 'object') {
+                if (item.text) return item.text;
+                if (item.type === 'text' && item.text) return item.text;
               }
               return '';
             }).join('');
           }
-          if (content && typeof content === 'object' && content.text) {
-            return content.text;
+          if (content && typeof content === 'object') {
+            if (content.text) return content.text;
+            if (content.type === 'text' && content.text) return content.text;
           }
           return '';
         };
@@ -173,56 +175,18 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
       </div>
 
       <div className="prose prose-lg max-w-none" dir="rtl">
-        {editor && (
-          <div
-            ref={(el) => {
-              if (el && editor) {
-                // ایجاد ویو ساده برای editor
-                try {
-                  el.innerHTML = '';
-                  const editorDiv = document.createElement('div');
-                  editorDiv.className = 'bn-editor bn-default-styles';
-                  editorDiv.contentEditable = 'true';
-                  editorDiv.dir = 'rtl';
-                  
-                  // تنظیم محتوای اولیه
-                  if (editor.document && editor.document.length > 0) {
-                    const content = editor.document.map(block => {
-                      if (block.type === 'heading') {
-                        const level = (block.props as any)?.level || 1;
-                        return `<h${level}>${block.content || ''}</h${level}>`;
-                      }
-                      return `<p>${block.content || ''}</p>`;
-                    }).join('');
-                    editorDiv.innerHTML = content;
-                  }
-                  
-                  // مدیریت تغییرات
-                  editorDiv.addEventListener('input', () => {
-                    handleEditorChange();
-                  });
-                  
-                  el.appendChild(editorDiv);
-                } catch (error) {
-                  console.error("Error setting up editor:", error);
-                  // Fallback به textarea
-                  const textarea = document.createElement('textarea');
-                  textarea.value = currentContent;
-                  textarea.className = 'w-full min-h-96 p-4 border rounded-md text-right';
-                  textarea.dir = 'rtl';
-                  textarea.placeholder = 'محتوای خود را اینجا بنویسید...';
-                  textarea.addEventListener('input', (e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    setCurrentContent(target.value);
-                    setHasUnsavedChanges(true);
-                  });
-                  el.appendChild(textarea);
-                }
-              }
+        <div className="min-h-96 border rounded-md p-4">
+          <textarea
+            value={currentContent}
+            onChange={(e) => {
+              setCurrentContent(e.target.value);
+              setHasUnsavedChanges(true);
             }}
-            className="min-h-96 border rounded-md p-4"
+            className="w-full min-h-96 p-4 border-none outline-none resize-none text-right bg-transparent"
+            dir="rtl"
+            placeholder="محتوای خود را اینجا بنویسید..."
           />
-        )}
+        </div>
       </div>
       
       {hasUnsavedChanges && (
