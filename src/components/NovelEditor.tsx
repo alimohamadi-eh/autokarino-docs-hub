@@ -1,9 +1,5 @@
 
-import { useState, useEffect } from "react";
-import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
-import { useCreateBlockNote, BlockNoteView } from "@blocknote/react";
-import "@blocknote/core/fonts/inter.css";
-import "@blocknote/react/style.css";
+import { useState, useEffect, useRef } from "react";
 
 interface NovelEditorProps {
   content: string;
@@ -13,23 +9,28 @@ interface NovelEditorProps {
 }
 
 const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorProps) => {
-  const editor = useCreateBlockNote({
-    initialContent: content ? [
-      {
-        type: "paragraph",
-        content: content,
-      } as PartialBlock
-    ] : undefined,
-  });
+  const [editorContent, setEditorContent] = useState(content);
+  const editorRef = useRef<HTMLDivElement>(null);
 
+  const handleContentChange = (newContent: string) => {
+    setEditorContent(newContent);
+    onChange(newContent);
+  };
+
+  // For now, let's create a simple rich text editor fallback
+  // until we can properly configure the novel editor
   useEffect(() => {
-    const handleChange = async () => {
-      const html = await editor.blocksToHTMLLossy(editor.document);
-      onChange(html);
-    };
+    if (editorRef.current) {
+      editorRef.current.innerHTML = content;
+    }
+  }, [content]);
 
-    editor.onChange(handleChange);
-  }, [editor, onChange]);
+  const handleContentEdit = () => {
+    if (editorRef.current) {
+      const newContent = editorRef.current.innerHTML;
+      handleContentChange(newContent);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -44,14 +45,14 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
         <div className="h-px bg-gradient-to-l from-border to-transparent mt-4" />
       </div>
 
-      <div className="prose prose-lg max-w-none" style={{ direction: 'rtl' }}>
-        <BlockNoteView 
-          editor={editor} 
-          theme="light"
-          style={{
-            minHeight: '500px',
-            direction: 'rtl'
-          }}
+      <div className="prose prose-lg max-w-none">
+        <div
+          ref={editorRef}
+          contentEditable
+          onInput={handleContentEdit}
+          className="min-h-[500px] prose prose-lg max-w-none focus:outline-none border border-gray-200 rounded-lg p-4"
+          style={{ direction: 'rtl' }}
+          suppressContentEditableWarning={true}
         />
       </div>
     </div>
