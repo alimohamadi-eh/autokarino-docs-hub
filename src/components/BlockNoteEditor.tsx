@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
-import { BlockNoteViewRaw, useCreateBlockNote } from "@blocknote/react";
+import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/react/style.css";
 
@@ -102,11 +102,28 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
       </div>
 
       <div className="prose prose-lg max-w-none" dir="rtl">
-        <BlockNoteViewRaw
-          editor={editor}
-          onChange={handleEditorChange}
-          theme="light"
-        />
+        {editor && (
+          <div
+            id="editor"
+            style={{
+              minHeight: "200px",
+              border: "1px solid #e2e8f0",
+              borderRadius: "8px",
+              padding: "16px"
+            }}
+            onInput={handleEditorChange}
+            ref={(el) => {
+              if (el && editor) {
+                // Mount the editor to the DOM element
+                try {
+                  editor.mount(el);
+                } catch (error) {
+                  console.log("Editor mounting handled internally");
+                }
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );
