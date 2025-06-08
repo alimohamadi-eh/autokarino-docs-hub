@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
-import { BlockNoteViewRaw, useCreateBlockNote } from "@blocknote/react";
+import { useCreateBlockNote } from "@blocknote/react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +32,6 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
     }
 
     try {
-      // تبدیل ساده HTML/Markdown به blocks
       const lines = htmlContent.split('\n').filter(line => line.trim() !== '');
       return lines.map(line => {
         const trimmedLine = line.trim();
@@ -72,7 +72,6 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
           return '';
         }
 
-        // استخراج متن از محتوای block
         const getTextFromContent = (content: any): string => {
           if (typeof content === 'string') {
             return content;
@@ -175,10 +174,53 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
 
       <div className="prose prose-lg max-w-none" dir="rtl">
         {editor && (
-          <BlockNoteViewRaw
-            editor={editor}
-            onChange={handleEditorChange}
-            theme="light"
+          <div
+            ref={(el) => {
+              if (el && editor) {
+                // ایجاد ویو ساده برای editor
+                try {
+                  el.innerHTML = '';
+                  const editorDiv = document.createElement('div');
+                  editorDiv.className = 'bn-editor bn-default-styles';
+                  editorDiv.contentEditable = 'true';
+                  editorDiv.dir = 'rtl';
+                  
+                  // تنظیم محتوای اولیه
+                  if (editor.document && editor.document.length > 0) {
+                    const content = editor.document.map(block => {
+                      if (block.type === 'heading') {
+                        const level = (block.props as any)?.level || 1;
+                        return `<h${level}>${block.content || ''}</h${level}>`;
+                      }
+                      return `<p>${block.content || ''}</p>`;
+                    }).join('');
+                    editorDiv.innerHTML = content;
+                  }
+                  
+                  // مدیریت تغییرات
+                  editorDiv.addEventListener('input', () => {
+                    handleEditorChange();
+                  });
+                  
+                  el.appendChild(editorDiv);
+                } catch (error) {
+                  console.error("Error setting up editor:", error);
+                  // Fallback به textarea
+                  const textarea = document.createElement('textarea');
+                  textarea.value = currentContent;
+                  textarea.className = 'w-full min-h-96 p-4 border rounded-md text-right';
+                  textarea.dir = 'rtl';
+                  textarea.placeholder = 'محتوای خود را اینجا بنویسید...';
+                  textarea.addEventListener('input', (e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    setCurrentContent(target.value);
+                    setHasUnsavedChanges(true);
+                  });
+                  el.appendChild(textarea);
+                }
+              }
+            }}
+            className="min-h-96 border rounded-md p-4"
           />
         )}
       </div>
