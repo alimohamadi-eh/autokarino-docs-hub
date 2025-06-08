@@ -1,5 +1,5 @@
 
-import { EditorRoot, EditorContent, type JSONContent } from "novel";
+import { Editor } from "novel";
 import { useState } from "react";
 
 interface NovelEditorProps {
@@ -17,38 +17,6 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
     onChange(newContent);
   };
 
-  // Convert HTML string to JSONContent format
-  const getInitialContent = (): JSONContent => {
-    if (!content || content.trim() === '') {
-      return {
-        type: 'doc',
-        content: [
-          {
-            type: 'paragraph',
-            content: []
-          }
-        ]
-      };
-    }
-    
-    // For now, create a basic document structure
-    // In production, you might want to use a proper HTML to JSONContent converter
-    return {
-      type: 'doc',
-      content: [
-        {
-          type: 'paragraph',
-          content: [
-            {
-              type: 'text',
-              text: content.replace(/<[^>]*>/g, '') // Simple HTML strip for now
-            }
-          ]
-        }
-      ]
-    };
-  };
-
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
@@ -63,25 +31,20 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
       </div>
 
       <div className="prose prose-lg max-w-none">
-        <EditorRoot>
-          <EditorContent
-            initialContent={getInitialContent()}
-            onCreate={({ editor }) => {
-              console.log('Editor created:', editor);
-            }}
-            onUpdate={({ editor }) => {
-              const html = editor.getHTML();
-              handleContentChange(html);
-            }}
-            className="min-h-[500px]"
-            editorProps={{
-              attributes: {
-                class: "prose prose-lg max-w-none focus:outline-none",
-                dir: "rtl"
-              }
-            }}
-          />
-        </EditorRoot>
+        <Editor
+          defaultValue={content}
+          onUpdate={(editor) => {
+            const html = editor?.getHTML() || '';
+            handleContentChange(html);
+          }}
+          className="min-h-[500px]"
+          editorProps={{
+            attributes: {
+              class: "prose prose-lg max-w-none focus:outline-none",
+              dir: "rtl"
+            }
+          }}
+        />
       </div>
     </div>
   );
