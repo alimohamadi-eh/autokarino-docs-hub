@@ -1,6 +1,5 @@
 
 import { EditorRoot, EditorContent, type JSONContent } from "novel";
-import { defaultExtensions } from "novel/extensions";
 import { useState } from "react";
 
 interface NovelEditorProps {
@@ -67,7 +66,6 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
         <EditorRoot>
           <EditorContent
             initialContent={getInitialContent()}
-            extensions={defaultExtensions}
             onUpdate={({ editor }) => {
               const html = editor.getHTML();
               handleContentChange(html);
