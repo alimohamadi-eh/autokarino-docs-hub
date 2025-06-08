@@ -1,4 +1,5 @@
 
+
 import { EditorRoot, EditorContent, type JSONContent } from "novel";
 import { useState } from "react";
 
@@ -17,6 +18,38 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
     onChange(newContent);
   };
 
+  // Convert HTML string to JSONContent format
+  const getInitialContent = (): JSONContent => {
+    if (!content || content.trim() === '') {
+      return {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: []
+          }
+        ]
+      };
+    }
+    
+    // For now, create a basic document structure
+    // In production, you might want to use a proper HTML to JSONContent converter
+    return {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: content.replace(/<[^>]*>/g, '') // Simple HTML strip for now
+            }
+          ]
+        }
+      ]
+    };
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
@@ -33,7 +66,7 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
       <div className="prose prose-lg max-w-none">
         <EditorRoot>
           <EditorContent
-            initialContent={content}
+            initialContent={getInitialContent()}
             onUpdate={({ editor }) => {
               const html = editor.getHTML();
               handleContentChange(html);
@@ -53,3 +86,4 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
 };
 
 export default NovelEditor;
+
