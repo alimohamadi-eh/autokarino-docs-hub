@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface NavigationItem {
@@ -24,6 +23,7 @@ interface DocsContextType {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   navigationData: Record<string, NavigationItem[]>;
+  setNavigationData: (data: Record<string, NavigationItem[]>) => void;
   isLoading: boolean;
   isEditMode: boolean;
   setIsEditMode: (mode: boolean) => void;
@@ -163,7 +163,7 @@ emails.forEach(email => {
   });
 
   // Mock navigation data - در آینده از فایل‌های JSON خوانده می‌شود
-  const navigationData: Record<string, NavigationItem[]> = {
+  const [navigationData, setNavigationData] = useState<Record<string, NavigationItem[]>>({
     program: [
       {
         title: "مقدمه",
@@ -203,7 +203,7 @@ emails.forEach(email => {
         ]
       }
     ]
-  };
+  });
 
   const updatePageContent = (slug: string, content: string, title?: string) => {
     setPageContents(prev => ({
@@ -217,22 +217,49 @@ emails.forEach(email => {
   };
 
   const createNewPage = (title: string, tab: string, parentSlug?: string): string => {
-    const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]/g, '');
+    const slug = title.toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]/g, '')
+      .replace(/[\u0600-\u06FF]/g, (match) => {
+        // Keep Persian characters and convert them safely
+        return encodeURIComponent(match).replace(/%/g, '');
+      });
+    
+    const finalSlug = `${slug}-${Date.now()}`;
+    
     const newPage: PageContent = {
       title,
-      slug,
+      slug: finalSlug,
       tab,
       content: `# ${title}
 
-این صفحه جدید ایجاد شده است. محتوای خود را اینجا بنویسید...`
+این صفحه جدید ایجاد شده است. محتوای خود را اینجا بنویسید...
+
+## شروع کنید
+
+از ویرایشگر BlockNote برای نوشتن محتوای خود استفاده کنید.`
     };
 
     setPageContents(prev => ({
       ...prev,
-      [slug]: newPage
+      [finalSlug]: newPage
     }));
 
-    return slug;
+    // Add to navigation structure
+    const newNavItem: NavigationItem = {
+      title,
+      slug: finalSlug
+    };
+
+    setNavigationData(prev => ({
+      ...prev,
+      [tab]: [
+        ...prev[tab] || [],
+        newNavItem
+      ]
+    }));
+
+    return finalSlug;
   };
 
   const deletePage = (slug: string) => {
@@ -240,6 +267,20 @@ emails.forEach(email => {
       const newContents = { ...prev };
       delete newContents[slug];
       return newContents;
+    });
+
+    // Remove from navigation
+    setNavigationData(prev => {
+      const newNav = { ...prev };
+      Object.keys(newNav).forEach(tab => {
+        newNav[tab] = newNav[tab].filter(item => item.slug !== slug);
+        newNav[tab].forEach(item => {
+          if (item.children) {
+            item.children = item.children.filter(child => child.slug !== slug);
+          }
+        });
+      });
+      return newNav;
     });
   };
 
@@ -253,6 +294,7 @@ emails.forEach(email => {
     searchQuery,
     setSearchQuery,
     navigationData,
+    setNavigationData,
     isLoading,
     isEditMode,
     setIsEditMode,

@@ -2,7 +2,7 @@
 import { useDocs } from "@/contexts/DocsContext";
 import MarkdownRenderer from "./MarkdownRenderer";
 import Breadcrumb from "./Breadcrumb";
-import NovelEditor from "./NovelEditor";
+import BlockNoteEditor from "./BlockNoteEditor";
 
 const ContentArea = () => {
   const { 
@@ -46,7 +46,7 @@ const ContentArea = () => {
           </article>
         </div>
       ) : (
-        <NovelEditor
+        <BlockNoteEditor
           content={pageContent}
           onChange={handleContentChange}
           title={pageTitle}
