@@ -66,6 +66,9 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
         <EditorRoot>
           <EditorContent
             initialContent={getInitialContent()}
+            onCreate={({ editor }) => {
+              console.log('Editor created:', editor);
+            }}
             onUpdate={({ editor }) => {
               const html = editor.getHTML();
               handleContentChange(html);
