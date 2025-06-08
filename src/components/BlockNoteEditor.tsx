@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from "react";
 import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
 import { BlockNoteViewRaw, useCreateBlockNote } from "@blocknote/react";
@@ -60,6 +61,8 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
 
   const editor = useCreateBlockNote({
     initialContent: initialBlocks,
+    // Disable side menu to avoid the SideMenu error
+    sideMenu: false,
   });
 
   useEffect(() => {
@@ -108,3 +111,4 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
 };
 
 export default BlockNoteEditorComponent;
+
