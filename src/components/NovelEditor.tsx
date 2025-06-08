@@ -1,7 +1,5 @@
 
-
-import { EditorInstance } from "novel";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface NovelEditorProps {
   content: string;
@@ -12,10 +10,26 @@ interface NovelEditorProps {
 
 const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorProps) => {
   const [editorContent, setEditorContent] = useState(content);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   const handleContentChange = (newContent: string) => {
     setEditorContent(newContent);
     onChange(newContent);
+  };
+
+  // For now, let's create a simple rich text editor fallback
+  // until we can properly configure the novel editor
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.innerHTML = content;
+    }
+  }, [content]);
+
+  const handleContentEdit = () => {
+    if (editorRef.current) {
+      const newContent = editorRef.current.innerHTML;
+      handleContentChange(newContent);
+    }
   };
 
   return (
@@ -32,21 +46,13 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
       </div>
 
       <div className="prose prose-lg max-w-none">
-        <EditorInstance
-          defaultValue=""
-          onUpdate={(editor) => {
-            if (editor) {
-              const html = editor.getHTML();
-              handleContentChange(html);
-            }
-          }}
-          className="min-h-[500px]"
-          editorProps={{
-            attributes: {
-              class: "prose prose-lg max-w-none focus:outline-none",
-              dir: "rtl"
-            }
-          }}
+        <div
+          ref={editorRef}
+          contentEditable
+          onInput={handleContentEdit}
+          className="min-h-[500px] prose prose-lg max-w-none focus:outline-none border border-gray-200 rounded-lg p-4"
+          style={{ direction: 'rtl' }}
+          suppressContentEditableWarning={true}
         />
       </div>
     </div>
@@ -54,4 +60,3 @@ const NovelEditor = ({ content, onChange, title, onTitleChange }: NovelEditorPro
 };
 
 export default NovelEditor;
-
