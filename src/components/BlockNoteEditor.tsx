@@ -3,10 +3,11 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { BlockNoteView } from "@blocknote/react";
-import { BlockNoteEditor as BlockNoteEditorType, Block } from "@blocknote/core";
+import { useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
+import { Block } from "@blocknote/core";
 import "@blocknote/core/fonts/inter.css";
-import "@blocknote/react/style.css";
+import "@blocknote/mantine/style.css";
 
 interface BlockNoteEditorProps {
   content: string;
@@ -69,11 +70,9 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
   }, [content]);
 
   // ایجاد editor instance
-  const editor = useMemo(() => {
-    return BlockNoteEditorType.create({
-      initialContent: initialBlocks,
-    });
-  }, []);
+  const editor = useCreateBlockNote({
+    initialContent: initialBlocks,
+  });
 
   const handleSave = async () => {
     try {
@@ -129,7 +128,6 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
           editor={editor} 
           onChange={handleEditorChange}
           theme="light"
-          data-theming-css-variables-demo
         />
       </div>
       
