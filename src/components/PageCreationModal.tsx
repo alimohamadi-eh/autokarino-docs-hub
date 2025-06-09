@@ -15,16 +15,19 @@ interface PageCreationModalProps {
 const PageCreationModal = ({ isOpen, onClose, parentSlug }: PageCreationModalProps) => {
   const [title, setTitle] = useState("");
   const [pageType, setPageType] = useState<"page" | "folder">("page");
+  const [selectedParent, setSelectedParent] = useState<string>(parentSlug || "no-parent");
   const { activeTab, createNewPage, setActivePage, navigationData } = useDocs();
 
   const handleCreate = () => {
     if (title.trim()) {
-      const newSlug = createNewPage(title, activeTab, parentSlug, pageType);
+      const finalParentSlug = selectedParent === "no-parent" ? undefined : selectedParent;
+      const newSlug = createNewPage(title, activeTab, finalParentSlug, pageType);
       if (pageType === "page") {
         setActivePage(newSlug);
       }
       setTitle("");
       setPageType("page");
+      setSelectedParent("no-parent");
       onClose();
     }
   };
@@ -78,12 +81,12 @@ const PageCreationModal = ({ isOpen, onClose, parentSlug }: PageCreationModalPro
           {availableParents.length > 0 && (
             <div>
               <label className="text-sm font-medium mb-2 block">پوشه والد (اختیاری)</label>
-              <Select value={parentSlug || ""} onValueChange={(value) => {}}>
+              <Select value={selectedParent} onValueChange={setSelectedParent}>
                 <SelectTrigger>
                   <SelectValue placeholder="انتخاب پوشه والد..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">📁 بدون والد</SelectItem>
+                  <SelectItem value="no-parent">📁 بدون والد</SelectItem>
                   {availableParents.map((parent) => (
                     <SelectItem key={parent.slug} value={parent.slug}>
                       📁 {parent.title}
