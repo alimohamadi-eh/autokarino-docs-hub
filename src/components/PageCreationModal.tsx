@@ -26,26 +26,30 @@ const PageCreationModal = ({ isOpen, onClose, parentSlug }: PageCreationModalPro
       if (pageType === "page") {
         setActivePage(newSlug);
       }
-      setTitle("");
-      setFileName("");
-      setPageType("page");
-      setSelectedParent("no-parent");
-      onClose();
+      handleClose();
     }
+  };
+
+  const handleClose = () => {
+    setTitle("");
+    setFileName("");
+    setPageType("page");
+    setSelectedParent(parentSlug || "no-parent");
+    onClose();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleCreate();
     } else if (e.key === 'Escape') {
-      onClose();
+      handleClose();
     }
   };
 
   // تولید خودکار نام فایل از عنوان
   const handleTitleChange = (value: string) => {
     setTitle(value);
-    if (!fileName) {
+    if (pageType === "page" && !fileName) {
       const autoFileName = value
         .toLowerCase()
         .replace(/[\u0600-\u06FF]/g, '') // حذف حروف فارسی
@@ -65,19 +69,39 @@ const PageCreationModal = ({ isOpen, onClose, parentSlug }: PageCreationModalPro
   const isFormValid = title.trim() && (pageType === "folder" || fileName.trim());
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md" dir="rtl">
         <DialogHeader>
-          <DialogTitle>ایجاد صفحه جدید</DialogTitle>
+          <DialogTitle>
+            {pageType === "page" ? "ایجاد صفحه جدید" : "ایجاد پوشه جدید"}
+          </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">نوع</label>
+            <Select value={pageType} onValueChange={(value: "page" | "folder") => {
+              setPageType(value);
+              if (value === "folder") {
+                setFileName("");
+              }
+            }}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="page">📄 صفحه</SelectItem>
+                <SelectItem value="folder">📁 پوشه</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div>
             <label className="text-sm font-medium mb-2 block">عنوان (فارسی)</label>
             <Input
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
-              placeholder="عنوان صفحه جدید..."
+              placeholder={pageType === "page" ? "عنوان صفحه جدید..." : "نام پوشه جدید..."}
               onKeyDown={handleKeyDown}
               autoFocus
               dir="rtl"
@@ -95,23 +119,10 @@ const PageCreationModal = ({ isOpen, onClose, parentSlug }: PageCreationModalPro
                 dir="ltr"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                فایل به صورت <code>{fileName || 'file-name'}.md</code> ایجاد خواهد شد
+                فایل به صورت <code>{fileName || 'file-name'}.md</code> در مسیر <code>docs/{activeTab}/</code> ایجاد خواهد شد
               </p>
             </div>
           )}
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">نوع</label>
-            <Select value={pageType} onValueChange={(value: "page" | "folder") => setPageType(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="page">📄 صفحه</SelectItem>
-                <SelectItem value="folder">📁 پوشه</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           {availableParents.length > 0 && (
             <div>
@@ -137,7 +148,7 @@ const PageCreationModal = ({ isOpen, onClose, parentSlug }: PageCreationModalPro
           <Button onClick={handleCreate} disabled={!isFormValid}>
             ایجاد
           </Button>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={handleClose}>
             لغو
           </Button>
         </DialogFooter>

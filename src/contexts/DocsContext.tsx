@@ -1,6 +1,7 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { TabConfig } from '@/types/tabs';
+import { createMdFile, readMdFile, updateMdFile, deleteMdFile, initializeDefaultFiles } from '@/utils/fileManager';
 
 interface NavigationItem {
   title: string;
@@ -63,128 +64,65 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
   const [isLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // محتوای صفحات - در آینده از فایل‌های JSON خوانده می‌شود
-  const [pageContents, setPageContents] = useState<Record<string, PageContent>>({
-    intro: {
-      title: "مقدمه‌ای بر خودکارینو",
-      slug: "intro",
-      tab: "program",
-      fileName: "introduction.md",
-      filePath: "docs/program/introduction.md",
-      content: `# مقدمه‌ای بر خودکارینو
+  // Initialize MD files and page contents
+  const [pageContents, setPageContents] = useState<Record<string, PageContent>>({});
 
-خوش آمدید به مستندات جامع **خودکارینو**! این پلتفرم قدرتمند برای ایجاد و مدیریت خودکارسازی‌های پیشرفته طراحی شده است.
+  useEffect(() => {
+    // Initialize default MD files
+    initializeDefaultFiles();
 
-## ویژگی‌های کلیدی
-
-### 🔄 خودکارسازی هوشمند
-- ایجاد فرآیندهای خودکار پیچیده
-- پشتیبانی از شرط‌ها و حلقه‌ها
-- تعامل با API های مختلف
-
-### 📊 مانیتورینگ و گزارش‌گیری
-- ردیابی عملکرد خودکارسازی‌ها
-- گزارش‌های تفصیلی
-- هشدارهای هوشمند
-
-### 🎯 سادگی استفاده
-رابط کاربری بصری و بدون نیاز به کدنویسی
-
-\`\`\`javascript
-// مثال کد ساده
-const automation = {
-  name: "خودکارسازی نمونه",
-  trigger: "webhook",
-  actions: ["send_email", "update_database"]
-};
-\`\`\`
-
-> **نکته:** این فقط یک نمونه از قابلیت‌های خودکارینو است. برای اطلاعات بیشتر بخش‌های مختلف را مطالعه کنید.`
-    },
-    "quick-start": {
-      title: "شروع سریع",
-      slug: "quick-start",
-      tab: "program",
-      fileName: "quick-start.md",
-      filePath: "docs/program/quick-start.md",
-      content: `# شروع سریع
-
-در این بخش نحوه شروع کار با خودکارینو را یاد می‌گیرید.
-
-## مرحله ۱: ایجاد حساب کاربری
-
-ابتدا باید در پلتفرم خودکارینو ثبت‌نام کنید:
-
-1. به صفحه ثبت‌نام بروید
-2. اطلاعات خود را وارد کنید
-3. ایمیل تأیید را چک کنید
-
-## مرحله ۲: اولین خودکارسازی
-
-\`\`\`python
-# نمونه کد Python برای API
-import requests
-
-response = requests.post('https://api.khodkarino.com/automation', {
-    'name': 'اولین خودکارسازی من',
-    'trigger': 'schedule'
-})
-\`\`\`
-
-### نکات مهم:
-- ✅ همیشه API key خود را محرمانه نگه دارید
-- ✅ تست کردن خودکارسازی قبل از اجرای نهایی
-- ⚠️ محدودیت‌های نرخ API را رعایت کنید`
-    },
-    iterator: {
-      title: "تکرارگر (Iterator)",
-      slug: "iterator", 
-      tab: "program",
-      fileName: "iterator.md",
-      filePath: "docs/program/iterator.md",
-      content: `# تکرارگر (Iterator)
-
-تکرارگر یکی از قدرتمندترین ابزارهای خودکارینو است که امکان تکرار اقدامات روی مجموعه‌ای از داده‌ها را فراهم می‌کند.
-
-## نحوه کارکرد
-
-تکرارگر روی هر آیتم در یک آرایه یا لیست عمل می‌کند:
-
-\`\`\`json
-{
-  "iterator": {
-    "input": ["آیتم ۱", "آیتم ۲", "آیتم ۳"],
-    "actions": [
-      {
-        "type": "process_item",
-        "value": "{{item}}"
+    // Load page contents from MD files
+    const defaultPages = {
+      intro: {
+        title: "مقدمه‌ای بر خودکارینو",
+        slug: "intro",
+        tab: "program",
+        fileName: "introduction.md",
+        filePath: "docs/program/introduction.md"
+      },
+      "quick-start": {
+        title: "شروع سریع",
+        slug: "quick-start",
+        tab: "program",
+        fileName: "quick-start.md",
+        filePath: "docs/program/quick-start.md"
+      },
+      iterator: {
+        title: "تکرارگر (Iterator)",
+        slug: "iterator",
+        tab: "program",
+        fileName: "iterator.md",
+        filePath: "docs/program/iterator.md"
+      },
+      "api-intro": {
+        title: "مقدمه API",
+        slug: "api-intro",
+        tab: "api",
+        fileName: "api-intro.md",
+        filePath: "docs/api/api-intro.md"
+      },
+      "app-intro": {
+        title: "مقدمه اپلیکیشن",
+        slug: "app-intro",
+        tab: "app",
+        fileName: "app-intro.md",
+        filePath: "docs/app/app-intro.md"
       }
-    ]
-  }
-}
-\`\`\`
+    };
 
-## مثال عملی
+    const loadedContents: Record<string, PageContent> = {};
+    Object.entries(defaultPages).forEach(([slug, pageInfo]) => {
+      const content = readMdFile(pageInfo.filePath) || '';
+      loadedContents[slug] = {
+        ...pageInfo,
+        content
+      };
+    });
 
-فرض کنید لیستی از ایمیل‌ها داریم و می‌خواهیم برای هر کدام ایمیل ارسال کنیم:
+    setPageContents(loadedContents);
+  }, []);
 
-\`\`\`javascript
-const emails = ['user1@example.com', 'user2@example.com'];
-
-emails.forEach(email => {
-  sendEmail({
-    to: email,
-    subject: 'خوش آمدید',
-    body: 'سلام و به خودکارینو خوش آمدید!'
-  });
-});
-\`\`\`
-
-> **توجه:** تکرارگر محدودیت حداکثر ۱۰۰۰ آیتم در هر اجرا دارد.`
-    }
-  });
-
-  // Mock navigation data - در آینده از فایل‌های JSON خوانده می‌شود
+  // Mock navigation data
   const [navigationData, setNavigationData] = useState<Record<string, NavigationItem[]>>({
     program: [
       {
@@ -249,11 +187,32 @@ emails.forEach(email => {
   };
 
   const deleteTab = (id: string) => {
+    // حذف تمام صفحات و فایل‌های مربوط به این تب
+    Object.values(pageContents).forEach(page => {
+      if (page.tab === id && page.filePath) {
+        deleteMdFile(page.filePath);
+      }
+    });
+
+    // حذف تب از لیست
     setTabs(prev => prev.filter(tab => tab.id !== id));
+    
+    // حذف navigation data
     setNavigationData(prev => {
       const newNav = { ...prev };
       delete newNav[id];
       return newNav;
+    });
+
+    // حذف محتوای صفحات
+    setPageContents(prev => {
+      const newContents = { ...prev };
+      Object.keys(newContents).forEach(slug => {
+        if (newContents[slug].tab === id) {
+          delete newContents[slug];
+        }
+      });
+      return newContents;
     });
     
     // اگر تب فعال حذف شد، به تب اول برو
@@ -263,6 +222,11 @@ emails.forEach(email => {
   };
 
   const updatePageContent = (slug: string, content: string, title?: string) => {
+    const page = pageContents[slug];
+    if (page?.filePath) {
+      updateMdFile(page.filePath, content);
+    }
+
     setPageContents(prev => ({
       ...prev,
       [slug]: {
@@ -287,13 +251,7 @@ emails.forEach(email => {
       const finalFileName = fileName || finalSlug;
       const filePath = `docs/${tab}/${finalFileName}.md`;
       
-      const newPage: PageContent = {
-        title,
-        slug: finalSlug,
-        tab,
-        fileName: `${finalFileName}.md`,
-        filePath,
-        content: `# ${title}
+      const defaultContent = `# ${title}
 
 این صفحه جدید ایجاد شده است. محتوای خود را اینجا بنویسید...
 
@@ -304,15 +262,24 @@ emails.forEach(email => {
 ### نکات:
 - از Markdown برای فرمت‌بندی استفاده کنید
 - کدها را در بلوک‌های مخصوص قرار دهید
-- تصاویر و لینک‌ها را اضافه کنید`
+- تصاویر و لینک‌ها را اضافه کنید`;
+
+      // ایجاد فایل MD
+      createMdFile(filePath, defaultContent);
+
+      const newPage: PageContent = {
+        title,
+        slug: finalSlug,
+        tab,
+        fileName: `${finalFileName}.md`,
+        filePath,
+        content: defaultContent
       };
 
       setPageContents(prev => ({
         ...prev,
         [finalSlug]: newPage
       }));
-
-      console.log(`فایل ${filePath} ایجاد شد`);
     }
 
     // Add to navigation structure
@@ -360,7 +327,7 @@ emails.forEach(email => {
   const deletePage = (slug: string) => {
     const page = pageContents[slug];
     if (page?.filePath) {
-      console.log(`فایل ${page.filePath} حذف شد`);
+      deleteMdFile(page.filePath);
     }
 
     setPageContents(prev => {
