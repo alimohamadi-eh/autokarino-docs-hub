@@ -14,18 +14,20 @@ interface PageCreationModalProps {
 
 const PageCreationModal = ({ isOpen, onClose, parentSlug }: PageCreationModalProps) => {
   const [title, setTitle] = useState("");
+  const [fileName, setFileName] = useState("");
   const [pageType, setPageType] = useState<"page" | "folder">("page");
   const [selectedParent, setSelectedParent] = useState<string>(parentSlug || "no-parent");
   const { activeTab, createNewPage, setActivePage, navigationData } = useDocs();
 
   const handleCreate = () => {
-    if (title.trim()) {
+    if (title.trim() && (pageType === "folder" || fileName.trim())) {
       const finalParentSlug = selectedParent === "no-parent" ? undefined : selectedParent;
-      const newSlug = createNewPage(title, activeTab, finalParentSlug, pageType);
+      const newSlug = createNewPage(title, activeTab, finalParentSlug, pageType, fileName);
       if (pageType === "page") {
         setActivePage(newSlug);
       }
       setTitle("");
+      setFileName("");
       setPageType("page");
       setSelectedParent("no-parent");
       onClose();
@@ -40,10 +42,27 @@ const PageCreationModal = ({ isOpen, onClose, parentSlug }: PageCreationModalPro
     }
   };
 
+  // تولید خودکار نام فایل از عنوان
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+    if (!fileName) {
+      const autoFileName = value
+        .toLowerCase()
+        .replace(/[\u0600-\u06FF]/g, '') // حذف حروف فارسی
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]/g, '')
+        .replace(/--+/g, '-')
+        .replace(/^-|-$/g, '');
+      setFileName(autoFileName);
+    }
+  };
+
   // Get available parent folders
   const availableParents = navigationData[activeTab]?.filter(item => 
     item.children && item.slug !== parentSlug
   ) || [];
+
+  const isFormValid = title.trim() && (pageType === "folder" || fileName.trim());
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -54,16 +73,32 @@ const PageCreationModal = ({ isOpen, onClose, parentSlug }: PageCreationModalPro
         
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium mb-2 block">عنوان</label>
+            <label className="text-sm font-medium mb-2 block">عنوان (فارسی)</label>
             <Input
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => handleTitleChange(e.target.value)}
               placeholder="عنوان صفحه جدید..."
               onKeyDown={handleKeyDown}
               autoFocus
               dir="rtl"
             />
           </div>
+
+          {pageType === "page" && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">نام فایل (انگلیسی)</label>
+              <Input
+                value={fileName}
+                onChange={(e) => setFileName(e.target.value)}
+                placeholder="file-name"
+                onKeyDown={handleKeyDown}
+                dir="ltr"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                فایل به صورت <code>{fileName || 'file-name'}.md</code> ایجاد خواهد شد
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="text-sm font-medium mb-2 block">نوع</label>
@@ -99,7 +134,7 @@ const PageCreationModal = ({ isOpen, onClose, parentSlug }: PageCreationModalPro
         </div>
 
         <DialogFooter className="flex justify-start gap-2">
-          <Button onClick={handleCreate} disabled={!title.trim()}>
+          <Button onClick={handleCreate} disabled={!isFormValid}>
             ایجاد
           </Button>
           <Button variant="outline" onClick={onClose}>

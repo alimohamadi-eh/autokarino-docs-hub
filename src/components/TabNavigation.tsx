@@ -1,16 +1,14 @@
 
 import { useDocs } from "@/contexts/DocsContext";
 import { cn } from "@/lib/utils";
-import { Edit3, Eye } from "lucide-react";
+import { Edit3, Eye, Settings } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import TabManager from "./TabManager";
 
 const TabNavigation = () => {
-  const { activeTab, setActiveTab, isEditMode, setIsEditMode } = useDocs();
-
-  const tabs = [
-    { id: 'program', label: 'برنامه', icon: '🔄' },
-    { id: 'api', label: 'API', icon: '🔌' },
-    { id: 'app', label: 'اپلیکیشن', icon: '📱' }
-  ];
+  const { activeTab, setActiveTab, isEditMode, setIsEditMode, tabs } = useDocs();
+  const [showTabManager, setShowTabManager] = useState(false);
 
   return (
     <div className="flex items-center gap-4">
@@ -30,6 +28,18 @@ const TabNavigation = () => {
             {tab.label}
           </button>
         ))}
+        
+        {isEditMode && (
+          <Button
+            onClick={() => setShowTabManager(true)}
+            variant="ghost"
+            size="sm"
+            className="p-2 h-8 w-8 ml-1"
+            title="مدیریت تب‌ها"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center bg-muted/50 rounded-lg p-1">
@@ -58,6 +68,11 @@ const TabNavigation = () => {
           ویرایش
         </button>
       </div>
+
+      <TabManager 
+        isOpen={showTabManager} 
+        onClose={() => setShowTabManager(false)} 
+      />
     </div>
   );
 };

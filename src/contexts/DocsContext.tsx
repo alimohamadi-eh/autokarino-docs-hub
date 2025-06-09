@@ -1,4 +1,6 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { TabConfig } from '@/types/tabs';
 
 interface NavigationItem {
   title: string;
@@ -11,6 +13,8 @@ interface PageContent {
   content: string;
   slug: string;
   tab: string;
+  fileName?: string;
+  filePath?: string;
 }
 
 interface DocsContextType {
@@ -29,8 +33,12 @@ interface DocsContextType {
   setIsEditMode: (mode: boolean) => void;
   pageContents: Record<string, PageContent>;
   updatePageContent: (slug: string, content: string, title?: string) => void;
-  createNewPage: (title: string, tab: string, parentSlug?: string, type?: "page" | "folder") => string;
+  createNewPage: (title: string, tab: string, parentSlug?: string, type?: "page" | "folder", fileName?: string) => string;
   deletePage: (slug: string) => void;
+  tabs: TabConfig[];
+  addTab: (label: string, icon: string) => void;
+  updateTab: (id: string, label: string, icon: string) => void;
+  deleteTab: (id: string) => void;
 }
 
 const DocsContext = createContext<DocsContextType | undefined>(undefined);
@@ -40,6 +48,14 @@ interface DocsProviderProps {
 }
 
 export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
+  // تب‌های پیش‌فرض
+  const defaultTabs: TabConfig[] = [
+    { id: 'program', label: 'برنامه', icon: '🔄', isCustom: false },
+    { id: 'api', label: 'API', icon: '🔌', isCustom: false },
+    { id: 'app', label: 'اپلیکیشن', icon: '📱', isCustom: false }
+  ];
+
+  const [tabs, setTabs] = useState<TabConfig[]>(defaultTabs);
   const [activeTab, setActiveTab] = useState('program');
   const [activeVersion, setActiveVersion] = useState('v1');
   const [activePage, setActivePage] = useState('intro');
@@ -53,6 +69,8 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
       title: "مقدمه‌ای بر خودکارینو",
       slug: "intro",
       tab: "program",
+      fileName: "introduction.md",
+      filePath: "docs/program/introduction.md",
       content: `# مقدمه‌ای بر خودکارینو
 
 خوش آمدید به مستندات جامع **خودکارینو**! این پلتفرم قدرتمند برای ایجاد و مدیریت خودکارسازی‌های پیشرفته طراحی شده است.
@@ -87,6 +105,8 @@ const automation = {
       title: "شروع سریع",
       slug: "quick-start",
       tab: "program",
+      fileName: "quick-start.md",
+      filePath: "docs/program/quick-start.md",
       content: `# شروع سریع
 
 در این بخش نحوه شروع کار با خودکارینو را یاد می‌گیرید.
@@ -120,6 +140,8 @@ response = requests.post('https://api.khodkarino.com/automation', {
       title: "تکرارگر (Iterator)",
       slug: "iterator", 
       tab: "program",
+      fileName: "iterator.md",
+      filePath: "docs/program/iterator.md",
       content: `# تکرارگر (Iterator)
 
 تکرارگر یکی از قدرتمندترین ابزارهای خودکارینو است که امکان تکرار اقدامات روی مجموعه‌ای از داده‌ها را فراهم می‌کند.
@@ -205,6 +227,41 @@ emails.forEach(email => {
     ]
   });
 
+  // مدیریت تب‌ها
+  const addTab = (label: string, icon: string) => {
+    const newTab: TabConfig = {
+      id: `custom-${Date.now()}`,
+      label,
+      icon,
+      isCustom: true
+    };
+    setTabs(prev => [...prev, newTab]);
+    setNavigationData(prev => ({
+      ...prev,
+      [newTab.id]: []
+    }));
+  };
+
+  const updateTab = (id: string, label: string, icon: string) => {
+    setTabs(prev => prev.map(tab => 
+      tab.id === id ? { ...tab, label, icon } : tab
+    ));
+  };
+
+  const deleteTab = (id: string) => {
+    setTabs(prev => prev.filter(tab => tab.id !== id));
+    setNavigationData(prev => {
+      const newNav = { ...prev };
+      delete newNav[id];
+      return newNav;
+    });
+    
+    // اگر تب فعال حذف شد، به تب اول برو
+    if (activeTab === id) {
+      setActiveTab(tabs.find(t => t.id !== id)?.id || 'program');
+    }
+  };
+
   const updatePageContent = (slug: string, content: string, title?: string) => {
     setPageContents(prev => ({
       ...prev,
@@ -216,7 +273,7 @@ emails.forEach(email => {
     }));
   };
 
-  const createNewPage = (title: string, tab: string, parentSlug?: string, type: "page" | "folder" = "page"): string => {
+  const createNewPage = (title: string, tab: string, parentSlug?: string, type: "page" | "folder" = "page", fileName?: string): string => {
     const slug = title.toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^\w\-]/g, '')
@@ -227,17 +284,35 @@ emails.forEach(email => {
     const finalSlug = `${slug}-${Date.now()}`;
     
     if (type === "page") {
+      const finalFileName = fileName || finalSlug;
+      const filePath = `docs/${tab}/${finalFileName}.md`;
+      
       const newPage: PageContent = {
         title,
         slug: finalSlug,
         tab,
-        content: `<h1>${title}</h1><p>این صفحه جدید ایجاد شده است. محتوای خود را اینجا بنویسید...</p><h2>شروع کنید</h2><p>از ویرایشگر متن برای نوشتن محتوای خود استفاده کنید.</p>`
+        fileName: `${finalFileName}.md`,
+        filePath,
+        content: `# ${title}
+
+این صفحه جدید ایجاد شده است. محتوای خود را اینجا بنویسید...
+
+## شروع کنید
+
+از ویرایشگر متن برای نوشتن محتوای خود استفاده کنید.
+
+### نکات:
+- از Markdown برای فرمت‌بندی استفاده کنید
+- کدها را در بلوک‌های مخصوص قرار دهید
+- تصاویر و لینک‌ها را اضافه کنید`
       };
 
       setPageContents(prev => ({
         ...prev,
         [finalSlug]: newPage
       }));
+
+      console.log(`فایل ${filePath} ایجاد شد`);
     }
 
     // Add to navigation structure
@@ -283,6 +358,11 @@ emails.forEach(email => {
   };
 
   const deletePage = (slug: string) => {
+    const page = pageContents[slug];
+    if (page?.filePath) {
+      console.log(`فایل ${page.filePath} حذف شد`);
+    }
+
     setPageContents(prev => {
       const newContents = { ...prev };
       delete newContents[slug];
@@ -332,7 +412,11 @@ emails.forEach(email => {
     pageContents,
     updatePageContent,
     createNewPage,
-    deletePage
+    deletePage,
+    tabs,
+    addTab,
+    updateTab,
+    deleteTab
   };
 
   return (
