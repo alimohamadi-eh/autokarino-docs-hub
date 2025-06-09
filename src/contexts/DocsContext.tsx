@@ -29,7 +29,7 @@ interface DocsContextType {
   setIsEditMode: (mode: boolean) => void;
   pageContents: Record<string, PageContent>;
   updatePageContent: (slug: string, content: string, title?: string) => void;
-  createNewPage: (title: string, tab: string, parentSlug?: string, type: "page" | "folder" = "page") => string;
+  createNewPage: (title: string, tab: string, parentSlug?: string, type?: "page" | "folder") => string;
   deletePage: (slug: string) => void;
 }
 

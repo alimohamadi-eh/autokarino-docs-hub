@@ -1,8 +1,7 @@
 
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Undo2, Redo2, Type, Heading1, Heading2, Heading3, Quote } from "lucide-react";
-import { cn } from "@/lib/utils";
+import React, { useRef, useCallback } from 'react';
+import { Bold, Italic, Underline, List, ListOrdered, Heading1, Heading2, Heading3, Quote, Code, Link2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface RichTextEditorProps {
   content: string;
@@ -10,111 +9,208 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
-const RichTextEditor = ({ content, onChange, placeholder = "شروع به نوشتن کنید..." }: RichTextEditorProps) => {
+const RichTextEditor = ({ content, onChange, placeholder }: RichTextEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
-  const [isToolbarVisible, setIsToolbarVisible] = useState(false);
 
-  useEffect(() => {
-    if (editorRef.current && content !== editorRef.current.innerHTML) {
-      editorRef.current.innerHTML = content;
-    }
-  }, [content]);
-
-  const executeCommand = (command: string, value?: string) => {
+  const executeCommand = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
     }
-    editorRef.current?.focus();
-  };
+  }, [onChange]);
 
-  const handleInput = () => {
+  const handleInput = useCallback(() => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
     }
-  };
+  }, [onChange]);
 
-  const handleFocus = () => {
-    setIsToolbarVisible(true);
-  };
-
-  const handleBlur = (e: React.FocusEvent) => {
-    // Only hide toolbar if focus is not moving to a toolbar button
-    if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget as Node)) {
-      setTimeout(() => setIsToolbarVisible(false), 150);
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Handle keyboard shortcuts
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key) {
+        case 'b':
+          e.preventDefault();
+          executeCommand('bold');
+          break;
+        case 'i':
+          e.preventDefault();
+          executeCommand('italic');
+          break;
+        case 'u':
+          e.preventDefault();
+          executeCommand('underline');
+          break;
+      }
     }
-  };
-
-  const toolbarButtons = [
-    { icon: Bold, command: "bold", title: "Bold (Ctrl+B)" },
-    { icon: Italic, command: "italic", title: "Italic (Ctrl+I)" },
-    { icon: Underline, command: "underline", title: "Underline (Ctrl+U)" },
-    { icon: Heading1, command: "formatBlock", value: "h1", title: "Heading 1" },
-    { icon: Heading2, command: "formatBlock", value: "h2", title: "Heading 2" },
-    { icon: Heading3, command: "formatBlock", value: "h3", title: "Heading 3" },
-    { icon: Type, command: "formatBlock", value: "p", title: "Paragraph" },
-    { icon: Quote, command: "formatBlock", value: "blockquote", title: "Quote" },
-    { icon: List, command: "insertUnorderedList", title: "Bullet List" },
-    { icon: ListOrdered, command: "insertOrderedList", title: "Numbered List" },
-    { icon: AlignLeft, command: "justifyLeft", title: "Align Left" },
-    { icon: AlignCenter, command: "justifyCenter", title: "Align Center" },
-    { icon: AlignRight, command: "justifyRight", title: "Align Right" },
-    { icon: Undo2, command: "undo", title: "Undo (Ctrl+Z)" },
-    { icon: Redo2, command: "redo", title: "Redo (Ctrl+Y)" },
-  ];
+  }, [executeCommand]);
 
   return (
-    <div className="relative" dir="rtl">
-      {/* Floating Toolbar */}
-      {isToolbarVisible && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex flex-wrap gap-1">
-          {toolbarButtons.map(({ icon: Icon, command, value, title }) => (
-            <Button
-              key={command + (value || '')}
-              variant="ghost"
-              size="sm"
-              onClick={() => executeCommand(command, value)}
-              title={title}
-              className="h-8 w-8 p-0 hover:bg-gray-100"
-            >
-              <Icon className="h-4 w-4" />
-            </Button>
-          ))}
-        </div>
-      )}
+    <div className="border border-border rounded-lg overflow-hidden">
+      <div className="border-b border-border p-2 flex flex-wrap gap-1 bg-muted/30">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => executeCommand('bold')}
+          className="h-8 w-8 p-0"
+          title="Bold (Ctrl+B)"
+        >
+          <Bold className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => executeCommand('italic')}
+          className="h-8 w-8 p-0"
+          title="Italic (Ctrl+I)"
+        >
+          <Italic className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => executeCommand('underline')}
+          className="h-8 w-8 p-0"
+          title="Underline (Ctrl+U)"
+        >
+          <Underline className="h-4 w-4" />
+        </Button>
 
-      {/* Editor */}
+        <div className="w-px h-6 bg-border my-1" />
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => executeCommand('formatBlock', 'h1')}
+          className="h-8 w-8 p-0"
+          title="Heading 1"
+        >
+          <Heading1 className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => executeCommand('formatBlock', 'h2')}
+          className="h-8 w-8 p-0"
+          title="Heading 2"
+        >
+          <Heading2 className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => executeCommand('formatBlock', 'h3')}
+          className="h-8 w-8 p-0"
+          title="Heading 3"
+        >
+          <Heading3 className="h-4 w-4" />
+        </Button>
+
+        <div className="w-px h-6 bg-border my-1" />
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => executeCommand('insertUnorderedList')}
+          className="h-8 w-8 p-0"
+          title="Bullet List"
+        >
+          <List className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => executeCommand('insertOrderedList')}
+          className="h-8 w-8 p-0"
+          title="Numbered List"
+        >
+          <ListOrdered className="h-4 w-4" />
+        </Button>
+
+        <div className="w-px h-6 bg-border my-1" />
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => executeCommand('formatBlock', 'blockquote')}
+          className="h-8 w-8 p-0"
+          title="Quote"
+        >
+          <Quote className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => executeCommand('formatBlock', 'pre')}
+          className="h-8 w-8 p-0"
+          title="Code Block"
+        >
+          <Code className="h-4 w-4" />
+        </Button>
+      </div>
+      
       <div
         ref={editorRef}
         contentEditable
         onInput={handleInput}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        className={cn(
-          "min-h-96 w-full p-4 border rounded-md text-right",
-          "prose prose-lg max-w-none",
-          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-          "bg-background text-foreground",
-          "[&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mb-4",
-          "[&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-3",
-          "[&_h3]:text-xl [&_h3]:font-bold [&_h3]:mb-2",
-          "[&_p]:mb-2 [&_p]:leading-relaxed",
-          "[&_blockquote]:border-r-4 [&_blockquote]:border-primary [&_blockquote]:pr-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground",
-          "[&_ul]:list-disc [&_ul]:pr-6 [&_ul]:mb-4",
-          "[&_ol]:list-decimal [&_ol]:pr-6 [&_ol]:mb-4",
-          "[&_li]:mb-1"
-        )}
-        style={{ direction: 'rtl' }}
+        onKeyDown={handleKeyDown}
+        className="min-h-[300px] p-4 focus:outline-none prose prose-sm max-w-none"
+        dangerouslySetInnerHTML={{ __html: content }}
+        dir="rtl"
+        style={{ 
+          fontFamily: 'inherit',
+          lineHeight: '1.6'
+        }}
         data-placeholder={placeholder}
       />
-
-      <style jsx>{`
-        [contenteditable]:empty:before {
-          content: attr(data-placeholder);
-          color: #9ca3af;
-          pointer-events: none;
-        }
-      `}</style>
+      
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          [contenteditable]:empty:before {
+            content: attr(data-placeholder);
+            color: #9ca3af;
+            pointer-events: none;
+          }
+          [contenteditable] h1 {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 0.5em 0;
+          }
+          [contenteditable] h2 {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 0.5em 0;
+          }
+          [contenteditable] h3 {
+            font-size: 1.17em;
+            font-weight: bold;
+            margin: 0.5em 0;
+          }
+          [contenteditable] blockquote {
+            border-right: 4px solid #e5e7eb;
+            margin: 1em 0;
+            padding: 0.5em 1em;
+            background: #f9fafb;
+          }
+          [contenteditable] pre {
+            background: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+          }
+          [contenteditable] ul, [contenteditable] ol {
+            padding-right: 2em;
+            margin: 1em 0;
+          }
+        `
+      }} />
     </div>
   );
 };
