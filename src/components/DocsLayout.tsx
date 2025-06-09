@@ -11,7 +11,7 @@ const DocsLayout = () => {
   return (
     <DocsProvider>
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-        <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <Header />
         
         <div className="flex h-[calc(100vh-4rem)]">
           <Sidebar isOpen={isSidebarOpen} />
