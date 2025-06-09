@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -21,9 +21,9 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
   const { toast } = useToast();
 
   // تبدیل HTML به blocks برای BlockNote
-  const parseContentToBlocks = (htmlContent: string): Block[] => {
+  const initialBlocks = useMemo(() => {
     try {
-      if (!htmlContent || htmlContent.trim() === '') {
+      if (!content || content.trim() === '') {
         return [
           {
             id: "initial",
@@ -35,7 +35,7 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
       
       // اگر محتوا HTML است، آن را به متن ساده تبدیل می‌کنیم
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = htmlContent;
+      tempDiv.innerHTML = content;
       const textContent = tempDiv.textContent || tempDiv.innerText || '';
       
       if (textContent.trim() === '') {
@@ -67,21 +67,12 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
         }
       ] as Block[];
     }
-  };
-
-  const initialBlocks = useMemo(() => parseContentToBlocks(content), []);
+  }, [content]);
 
   // ایجاد editor instance
   const editor = useCreateBlockNote({
     initialContent: initialBlocks,
   });
-
-  // بروزرسانی محتوای editor زمانی که صفحه تغییر می‌کند
-  useEffect(() => {
-    const newBlocks = parseContentToBlocks(content);
-    editor.replaceBlocks(editor.document, newBlocks);
-    setHasUnsavedChanges(false);
-  }, [content, editor]);
 
   const handleSave = async () => {
     try {
