@@ -10,7 +10,8 @@ import {
   copyVersionFiles,
   deleteVersionFiles,
   renameVersionFiles,
-  listMdFiles
+  listMdFiles,
+  getVersionFiles
 } from '@/utils/fileManager';
 
 interface NavigationItem {
@@ -83,127 +84,113 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
 
   // Initialize MD files and page contents
   const [pageContents, setPageContents] = useState<Record<string, PageContent>>({});
+  const [navigationData, setNavigationData] = useState<Record<string, NavigationItem[]>>({});
 
-  // Mock navigation data - بر اساس نسخه فعال
-  const [navigationData, setNavigationData] = useState<Record<string, NavigationItem[]>>({
-    program: [
-      {
-        title: "مقدمه",
-        slug: "intro",
-        children: [
-          { title: "شروع سریع", slug: "quick-start" },
-          { title: "نصب و راه‌اندازی", slug: "installation" }
-        ]
-      },
-      {
-        title: "خودکارسازی",
-        slug: "automation", 
-        children: [
-          { title: "تکرارگر", slug: "iterator" },
-          { title: "شرط‌ها", slug: "conditions" },
-          { title: "متغیرها", slug: "variables" }
-        ]
+  // تابع برای ایجاد navigation data از فایل‌های موجود
+  const buildNavigationFromFiles = (versionFiles: string[], version: string): Record<string, NavigationItem[]> => {
+    const navigation: Record<string, NavigationItem[]> = {
+      program: [],
+      api: [],
+      app: []
+    };
+
+    versionFiles.forEach(filePath => {
+      const pathParts = filePath.split('/');
+      if (pathParts.length >= 4) { // docs/version/tab/file.md
+        const tab = pathParts[2];
+        const fileName = pathParts[pathParts.length - 1];
+        const fileNameWithoutExt = fileName.replace('.md', '');
+        
+        // خواندن محتوای فایل برای استخراج عنوان
+        const content = readMdFile(filePath) || '';
+        const titleMatch = content.match(/^#\s+(.+)$/m);
+        const title = titleMatch ? titleMatch[1] : fileNameWithoutExt;
+        
+        // ایجاد slug منحصربه‌فرد
+        let slug = fileNameWithoutExt;
+        if (slug === 'introduction') slug = 'intro';
+        
+        const navItem: NavigationItem = {
+          title,
+          slug
+        };
+
+        // اضافه کردن به navigation مناسب
+        if (navigation[tab]) {
+          navigation[tab].push(navItem);
+        }
       }
-    ],
-    api: [
-      {
-        title: "مقدمه API",
-        slug: "api-intro",
-        children: [
-          { title: "احراز هویت", slug: "authentication" },
-          { title: "نرخ محدودیت", slug: "rate-limiting" }
-        ]
+    });
+
+    // اضافه کردن ساختار پیش‌فرض اگر خالی باشد
+    Object.keys(navigation).forEach(tab => {
+      if (navigation[tab].length === 0) {
+        if (tab === 'program') {
+          navigation[tab] = [
+            {
+              title: "مقدمه",
+              slug: "intro",
+              children: [
+                { title: "شروع سریع", slug: "quick-start" }
+              ]
+            },
+            {
+              title: "خودکارسازی",
+              slug: "automation", 
+              children: [
+                { title: "تکرارگر", slug: "iterator" }
+              ]
+            }
+          ];
+        } else if (tab === 'api') {
+          navigation[tab] = [
+            {
+              title: "مقدمه API",
+              slug: "api-intro"
+            }
+          ];
+        } else if (tab === 'app') {
+          navigation[tab] = [
+            {
+              title: "مقدمه اپلیکیشن", 
+              slug: "app-intro"
+            }
+          ];
+        }
       }
-    ],
-    app: [
-      {
-        title: "مقدمه اپلیکیشن",
-        slug: "app-intro",
-        children: [
-          { title: "رابط کاربری", slug: "ui-guide" },
-          { title: "تنظیمات", slug: "settings" }
-        ]
-      }
-    ]
-  });
+    });
+
+    return navigation;
+  };
 
   // تابع کمکی برای بارگذاری محتوای نسخه
   const loadVersionContent = (version: string) => {
-    console.log(`🔄 بارگذاری محتوای نسخه ${version}`);
+    console.log(`🔄 بارگذاری کامل محتوای نسخه ${version}`);
     
     // اول فایل‌های پیش‌فرض را اگر وجود ندارند ایجاد کن
     initializeDefaultFiles(version);
 
-    // سپس تمامی فایل‌های موجود این نسخه را بارگذاری کن
-    const versionFiles = listMdFiles().filter(path => path.startsWith(`docs/${version}/`));
+    // دریافت تمامی فایل‌های این نسخه
+    const versionFiles = getVersionFiles(version);
+    console.log(`📁 فایل‌های پیدا شده برای نسخه ${version}:`, versionFiles);
     
     const loadedContents: Record<string, PageContent> = {};
     
-    // صفحات پیش‌فرض
-    const defaultPages = {
-      intro: {
-        title: "مقدمه‌ای بر خودکارینو",
-        slug: "intro",
-        tab: "program",
-        fileName: "introduction.md",
-        filePath: `docs/${version}/program/introduction.md`
-      },
-      "quick-start": {
-        title: "شروع سریع",
-        slug: "quick-start",
-        tab: "program",
-        fileName: "quick-start.md",
-        filePath: `docs/${version}/program/quick-start.md`
-      },
-      iterator: {
-        title: "تکرارگر (Iterator)",
-        slug: "iterator",
-        tab: "program",
-        fileName: "iterator.md",
-        filePath: `docs/${version}/program/iterator.md`
-      },
-      "api-intro": {
-        title: "مقدمه API",
-        slug: "api-intro",
-        tab: "api",
-        fileName: "api-intro.md",
-        filePath: `docs/${version}/api/api-intro.md`
-      },
-      "app-intro": {
-        title: "مقدمه اپلیکیشن",
-        slug: "app-intro",
-        tab: "app",
-        fileName: "app-intro.md",
-        filePath: `docs/${version}/app/app-intro.md`
-      }
-    };
-
-    // بارگذاری صفحات پیش‌فرض
-    Object.entries(defaultPages).forEach(([slug, pageInfo]) => {
-      const content = readMdFile(pageInfo.filePath) || '';
-      loadedContents[slug] = {
-        ...pageInfo,
-        content
-      };
-    });
-
-    // بارگذاری سایر فایل‌هایی که ممکن است در این نسخه اضافه شده باشند
+    // بارگذاری تمامی فایل‌ها
     versionFiles.forEach(filePath => {
-      // اگر این فایل قبلاً در صفحات پیش‌فرض بارگذاری شده، از آن بگذر
-      const isDefaultFile = Object.values(defaultPages).some(page => page.filePath === filePath);
-      if (isDefaultFile) return;
-
       const content = readMdFile(filePath) || '';
       const pathParts = filePath.split('/');
       const fileName = pathParts[pathParts.length - 1];
       const tab = pathParts[2]; // docs/version/tab/file.md
       const fileNameWithoutExt = fileName.replace('.md', '');
       
-      // استخراج عنوان از محتوای فایل (اولین خط که با # شروع می‌شود)
+      // استخراج عنوان از محتوای فایل
       const titleMatch = content.match(/^#\s+(.+)$/m);
       const title = titleMatch ? titleMatch[1] : fileNameWithoutExt;
       
-      const slug = `${fileNameWithoutExt}-${Date.now()}`;
+      // ایجاد slug - برای فایل‌های خاص نام‌های ثابت استفاده کن
+      let slug = fileNameWithoutExt;
+      if (slug === 'introduction') slug = 'intro';
       
       loadedContents[slug] = {
         title,
@@ -215,7 +202,18 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
       };
     });
 
+    // ایجاد navigation data از فایل‌ها
+    const newNavigationData = buildNavigationFromFiles(versionFiles, version);
+
+    // بروزرسانی state ها
     setPageContents(loadedContents);
+    setNavigationData(newNavigationData);
+    
+    // رفتن به اولین صفحه موجود
+    const firstPageSlug = Object.keys(loadedContents)[0] || 'intro';
+    setActivePage(firstPageSlug);
+    
+    console.log(`✅ محتوای نسخه ${version} بارگذاری شد. صفحه فعال: ${firstPageSlug}`);
   };
 
   // بارگذاری اولیه و وقتی نسخه تغییر می‌کند
@@ -414,9 +412,10 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
       return newNav;
     });
 
-    // If deleted page was active, switch to intro
+    // If deleted page was active, switch to first available page
     if (activePage === slug) {
-      setActivePage('intro');
+      const remainingPages = Object.keys(pageContents).filter(s => s !== slug);
+      setActivePage(remainingPages[0] || 'intro');
     }
   };
 
@@ -462,10 +461,8 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
 
   // تابع کمکی برای تغییر نسخه فعال
   const handleSetActiveVersion = (version: string) => {
-    console.log(`🔄 تغییر نسخه به ${version}`);
+    console.log(`🔄 تغییر نسخه از ${activeVersion} به ${version}`);
     setActiveVersion(version);
-    // بعد از تغییر نسخه، به صفحه intro برو
-    setActivePage('intro');
   };
 
   const value: DocsContextType = {
