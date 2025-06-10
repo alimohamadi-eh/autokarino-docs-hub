@@ -9,9 +9,11 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import VersionManager from "./VersionManager";
+import { useState } from "react";
 
 const VersionSelector = () => {
   const { activeVersion, setActiveVersion, versions } = useDocs();
+  const [isVersionManagerOpen, setIsVersionManagerOpen] = useState(false);
 
   return (
     <div className="flex items-center gap-2">
@@ -38,13 +40,19 @@ const VersionSelector = () => {
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <div className="w-full">
-              <VersionManager />
-            </div>
+          <DropdownMenuItem 
+            onClick={() => setIsVersionManagerOpen(true)}
+            className="cursor-pointer"
+          >
+            مدیریت نسخه‌ها
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      
+      <VersionManager 
+        isOpen={isVersionManagerOpen} 
+        onOpenChange={setIsVersionManagerOpen} 
+      />
     </div>
   );
 };

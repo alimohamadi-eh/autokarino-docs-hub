@@ -11,7 +11,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -23,10 +22,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Edit, Trash2, Settings } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-const VersionManager = () => {
+interface VersionManagerProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const VersionManager = ({ isOpen, onOpenChange }: VersionManagerProps) => {
   const { 
     versions, 
     activeVersion, 
@@ -35,7 +39,6 @@ const VersionManager = () => {
     deleteVersion 
   } = useDocs();
   
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newVersionName, setNewVersionName] = useState("");
@@ -62,7 +65,6 @@ const VersionManager = () => {
 
     addVersion(newVersionName.trim());
     setNewVersionName("");
-    setIsAddDialogOpen(false);
     toast({
       description: `نسخه ${newVersionName} ایجاد شد`,
     });
@@ -116,13 +118,7 @@ const VersionManager = () => {
 
   return (
     <>
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-2">
-            <Settings className="h-4 w-4" />
-            مدیریت نسخه‌ها
-          </Button>
-        </DialogTrigger>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>مدیریت نسخه‌ها</DialogTitle>
