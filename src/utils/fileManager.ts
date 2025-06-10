@@ -67,8 +67,30 @@ export const renameVersionFiles = (oldVersion: string, newVersion: string): void
   });
 };
 
+// تابع کمکی برای دریافت فایل‌های یک نسخه خاص
+export const getVersionFiles = (version: string): string[] => {
+  return Array.from(mdFiles.keys()).filter(path => 
+    path.startsWith(`docs/${version}/`)
+  );
+};
+
+// تابع کمکی برای بررسی وجود نسخه
+export const versionExists = (version: string): boolean => {
+  return Array.from(mdFiles.keys()).some(path => 
+    path.startsWith(`docs/${version}/`)
+  );
+};
+
 // Initialize default MD files
 export const initializeDefaultFiles = (version: string = 'v1') => {
+  // بررسی کنیم که آیا فایل‌های این نسخه از قبل وجود دارند یا نه
+  if (versionExists(version)) {
+    console.log(`ℹ️ فایل‌های نسخه ${version} از قبل وجود دارند`);
+    return;
+  }
+
+  console.log(`🚀 ایجاد فایل‌های پیش‌فرض برای نسخه ${version}`);
+
   createMdFile(`docs/${version}/program/introduction.md`, `# مقدمه‌ای بر خودکارینو
 
 خوش آمدید به مستندات جامع **خودکارینو**! این پلتفرم قدرتمند برای ایجاد و مدیریت خودکارسازی‌های پیشرفته طراحی شده است.
