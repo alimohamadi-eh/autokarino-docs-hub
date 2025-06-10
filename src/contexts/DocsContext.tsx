@@ -1,7 +1,15 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { TabConfig } from '@/types/tabs';
-import { createMdFile, readMdFile, updateMdFile, deleteMdFile, initializeDefaultFiles } from '@/utils/fileManager';
+import { 
+  createMdFile, 
+  readMdFile, 
+  updateMdFile, 
+  deleteMdFile, 
+  initializeDefaultFiles,
+  copyVersionFiles,
+  deleteVersionFiles,
+  renameVersionFiles
+} from '@/utils/fileManager';
 
 interface NavigationItem {
   title: string;
@@ -40,6 +48,10 @@ interface DocsContextType {
   addTab: (label: string, icon: string) => void;
   updateTab: (id: string, label: string, icon: string) => void;
   deleteTab: (id: string) => void;
+  versions: string[];
+  addVersion: (version: string) => void;
+  updateVersion: (oldVersion: string, newVersion: string) => void;
+  deleteVersion: (version: string) => void;
 }
 
 const DocsContext = createContext<DocsContextType | undefined>(undefined);
@@ -64,12 +76,15 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
   const [isLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
+  // Version management
+  const [versions, setVersions] = useState<string[]>(['v1', 'v2']);
+
   // Initialize MD files and page contents
   const [pageContents, setPageContents] = useState<Record<string, PageContent>>({});
 
   useEffect(() => {
-    // Initialize default MD files
-    initializeDefaultFiles();
+    // Initialize default MD files for default version
+    initializeDefaultFiles(activeVersion);
 
     // Load page contents from MD files
     const defaultPages = {
@@ -78,35 +93,35 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
         slug: "intro",
         tab: "program",
         fileName: "introduction.md",
-        filePath: "docs/program/introduction.md"
+        filePath: `docs/${activeVersion}/program/introduction.md`
       },
       "quick-start": {
         title: "شروع سریع",
         slug: "quick-start",
         tab: "program",
         fileName: "quick-start.md",
-        filePath: "docs/program/quick-start.md"
+        filePath: `docs/${activeVersion}/program/quick-start.md`
       },
       iterator: {
         title: "تکرارگر (Iterator)",
         slug: "iterator",
         tab: "program",
         fileName: "iterator.md",
-        filePath: "docs/program/iterator.md"
+        filePath: `docs/${activeVersion}/program/iterator.md`
       },
       "api-intro": {
         title: "مقدمه API",
         slug: "api-intro",
         tab: "api",
         fileName: "api-intro.md",
-        filePath: "docs/api/api-intro.md"
+        filePath: `docs/${activeVersion}/api/api-intro.md`
       },
       "app-intro": {
         title: "مقدمه اپلیکیشن",
         slug: "app-intro",
         tab: "app",
         fileName: "app-intro.md",
-        filePath: "docs/app/app-intro.md"
+        filePath: `docs/${activeVersion}/app/app-intro.md`
       }
     };
 
@@ -120,7 +135,7 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
     });
 
     setPageContents(loadedContents);
-  }, []);
+  }, [activeVersion]);
 
   // Mock navigation data
   const [navigationData, setNavigationData] = useState<Record<string, NavigationItem[]>>({
@@ -249,7 +264,7 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
     
     if (type === "page") {
       const finalFileName = fileName || finalSlug;
-      const filePath = `docs/${tab}/${finalFileName}.md`;
+      const filePath = `docs/${activeVersion}/${tab}/${finalFileName}.md`;
       
       const defaultContent = `# ${title}
 
@@ -362,6 +377,73 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
     }
   };
 
+  // Version management functions
+  const addVersion = (version: string) => {
+    // Copy files from current version to new version
+    copyVersionFiles(activeVersion, version);
+    
+    setVersions(prev => [...prev, version]);
+    
+    // Switch to new version
+    setActiveVersion(version);
+  };
+
+  const updateVersion = (oldVersion: string, newVersion: string) => {
+    // Rename files in file system
+    renameVersionFiles(oldVersion, newVersion);
+    
+    // Update versions list
+    setVersions(prev => prev.map(v => v === oldVersion ? newVersion : v));
+    
+    // Update active version if it was the one being edited
+    if (activeVersion === oldVersion) {
+      setActiveVersion(newVersion);
+    }
+    
+    // Update page contents paths
+    setPageContents(prev => {
+      const newContents: Record<string, PageContent> = {};
+      Object.entries(prev).forEach(([slug, content]) => {
+        if (content.filePath?.includes(`docs/${oldVersion}/`)) {
+          newContents[slug] = {
+            ...content,
+            filePath: content.filePath.replace(`docs/${oldVersion}/`, `docs/${newVersion}/`)
+          };
+        } else {
+          newContents[slug] = content;
+        }
+      });
+      return newContents;
+    });
+  };
+
+  const deleteVersion = (version: string) => {
+    if (versions.length === 1) return; // Don't delete the last version
+    
+    // Delete all files for this version
+    deleteVersionFiles(version);
+    
+    // Remove from versions list
+    setVersions(prev => prev.filter(v => v !== version));
+    
+    // Switch to first available version if current version is deleted
+    if (activeVersion === version) {
+      const remainingVersions = versions.filter(v => v !== version);
+      setActiveVersion(remainingVersions[0]);
+    }
+    
+    // Remove page contents for this version
+    setPageContents(prev => {
+      const newContents: Record<string, PageContent> = {};
+      Object.entries(prev).forEach(([slug, content]) => {
+        if (!content.filePath?.includes(`docs/${version}/`)) {
+          newContents[slug] = content;
+        }
+      });
+      return newContents;
+    });
+  };
+
   const value: DocsContextType = {
     activeTab,
     setActiveTab,
@@ -383,7 +465,11 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
     tabs,
     addTab,
     updateTab,
-    deleteTab
+    deleteTab,
+    versions,
+    addVersion,
+    updateVersion,
+    deleteVersion
   };
 
   return (

@@ -25,9 +25,51 @@ export const listMdFiles = (): string[] => {
   return Array.from(mdFiles.keys());
 };
 
+export const copyVersionFiles = (fromVersion: string, toVersion: string): void => {
+  const filesToCopy = Array.from(mdFiles.keys()).filter(path => 
+    path.startsWith(`docs/${fromVersion}/`)
+  );
+  
+  filesToCopy.forEach(filePath => {
+    const content = mdFiles.get(filePath);
+    if (content) {
+      const newPath = filePath.replace(`docs/${fromVersion}/`, `docs/${toVersion}/`);
+      mdFiles.set(newPath, content);
+      console.log(`📋 فایل کپی شد: ${filePath} -> ${newPath}`);
+    }
+  });
+};
+
+export const deleteVersionFiles = (version: string): void => {
+  const filesToDelete = Array.from(mdFiles.keys()).filter(path => 
+    path.startsWith(`docs/${version}/`)
+  );
+  
+  filesToDelete.forEach(filePath => {
+    mdFiles.delete(filePath);
+    console.log(`🗑️ فایل نسخه حذف شد: ${filePath}`);
+  });
+};
+
+export const renameVersionFiles = (oldVersion: string, newVersion: string): void => {
+  const filesToRename = Array.from(mdFiles.keys()).filter(path => 
+    path.startsWith(`docs/${oldVersion}/`)
+  );
+  
+  filesToRename.forEach(filePath => {
+    const content = mdFiles.get(filePath);
+    if (content) {
+      const newPath = filePath.replace(`docs/${oldVersion}/`, `docs/${newVersion}/`);
+      mdFiles.set(newPath, content);
+      mdFiles.delete(filePath);
+      console.log(`📝 نام فایل تغییر یافت: ${filePath} -> ${newPath}`);
+    }
+  });
+};
+
 // Initialize default MD files
-export const initializeDefaultFiles = () => {
-  createMdFile('docs/program/introduction.md', `# مقدمه‌ای بر خودکارینو
+export const initializeDefaultFiles = (version: string = 'v1') => {
+  createMdFile(`docs/${version}/program/introduction.md`, `# مقدمه‌ای بر خودکارینو
 
 خوش آمدید به مستندات جامع **خودکارینو**! این پلتفرم قدرتمند برای ایجاد و مدیریت خودکارسازی‌های پیشرفته طراحی شده است.
 
@@ -57,7 +99,7 @@ const automation = {
 
 > **نکته:** این فقط یک نمونه از قابلیت‌های خودکارینو است. برای اطلاعات بیشتر بخش‌های مختلف را مطالعه کنید.`);
 
-  createMdFile('docs/program/quick-start.md', `# شروع سریع
+  createMdFile(`docs/${version}/program/quick-start.md`, `# شروع سریع
 
 در این بخش نحوه شروع کار با خودکارینو را یاد می‌گیرید.
 
@@ -86,7 +128,7 @@ response = requests.post('https://api.khodkarino.com/automation', {
 - ✅ تست کردن خودکارسازی قبل از اجرای نهایی
 - ⚠️ محدودیت‌های نرخ API را رعایت کنید`);
 
-  createMdFile('docs/program/iterator.md', `# تکرارگر (Iterator)
+  createMdFile(`docs/${version}/program/iterator.md`, `# تکرارگر (Iterator)
 
 تکرارگر یکی از قدرتمندترین ابزارهای خودکارینو است که امکان تکرار اقدامات روی مجموعه‌ای از داده‌ها را فراهم می‌کند.
 
@@ -126,14 +168,14 @@ emails.forEach(email => {
 
 > **توجه:** تکرارگر محدودیت حداکثر ۱۰۰۰ آیتم در هر اجرا دارد.`);
 
-  createMdFile('docs/api/api-intro.md', `# مقدمه API خودکارینو
+  createMdFile(`docs/${version}/api/api-intro.md`, `# مقدمه API خودکارینو
 
 API خودکارینو امکان تعامل برنامه‌نویسی با پلتفرم را فراهم می‌کند.
 
 ## URL پایه
 
 \`\`\`
-https://api.khodkarino.com/v1
+https://api.khodkarino.com/${version}
 \`\`\`
 
 ## احراز هویت
@@ -142,7 +184,7 @@ https://api.khodkarino.com/v1
 
 \`\`\`bash
 curl -H "Authorization: Bearer YOUR_API_KEY" \\
-     https://api.khodkarino.com/v1/automations
+     https://api.khodkarino.com/${version}/automations
 \`\`\`
 
 ## نرخ محدودیت
@@ -150,7 +192,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \\
 - حداکثر ۱۰۰ درخواست در دقیقه
 - حداکثر ۱۰۰۰ درخواست در ساعت`);
 
-  createMdFile('docs/app/app-intro.md', `# مقدمه اپلیکیشن خودکارینو
+  createMdFile(`docs/${version}/app/app-intro.md`, `# مقدمه اپلیکیشن خودکارینو
 
 اپلیکیشن خودکارینو رابط کاربری تحت وب برای مدیریت خودکارسازی‌هاست.
 

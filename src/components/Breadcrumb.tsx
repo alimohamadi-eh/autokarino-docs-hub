@@ -2,7 +2,7 @@
 import { useDocs } from "@/contexts/DocsContext";
 
 const Breadcrumb = () => {
-  const { activeTab, activePage } = useDocs();
+  const { activeTab, activePage, pageContents } = useDocs();
 
   const getTabLabel = (tab: string) => {
     const labels: Record<string, string> = {
@@ -14,6 +14,13 @@ const Breadcrumb = () => {
   };
 
   const getPageLabel = (page: string) => {
+    // اول از pageContents عنوان واقعی را دریافت کن
+    const pageContent = pageContents[page];
+    if (pageContent?.title) {
+      return pageContent.title;
+    }
+
+    // اگر پیدا نشد، از labels پیش‌فرض استفاده کن
     const labels: Record<string, string> = {
       intro: 'مقدمه',
       'quick-start': 'شروع سریع',
