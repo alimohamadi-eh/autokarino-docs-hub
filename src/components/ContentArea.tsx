@@ -3,6 +3,7 @@ import { useDocs } from "@/contexts/DocsContext";
 import MarkdownRenderer from "./MarkdownRenderer";
 import Breadcrumb from "./Breadcrumb";
 import BlockNoteEditor from "./BlockNoteEditor";
+import { useEffect, useState } from "react";
 
 const ContentArea = () => {
   const { 
@@ -12,7 +13,16 @@ const ContentArea = () => {
     isEditMode 
   } = useDocs();
 
+  const [editorKey, setEditorKey] = useState(0);
+
   const currentPage = pageContents[activePage];
+
+  // وقتی صفحه فعال تغییر کند، editor را به‌روزرسانی کن
+  useEffect(() => {
+    if (isEditMode) {
+      setEditorKey(prev => prev + 1);
+    }
+  }, [activePage, isEditMode]);
 
   const handleContentChange = (content: string) => {
     updatePageContent(activePage, content);
@@ -47,6 +57,7 @@ const ContentArea = () => {
         </div>
       ) : (
         <BlockNoteEditor
+          key={editorKey}
           content={pageContent}
           onChange={handleContentChange}
           title={pageTitle}

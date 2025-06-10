@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -20,65 +20,120 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const { toast } = useToast();
 
-  // تبدیل HTML به blocks برای BlockNote
-  const initialBlocks = useMemo(() => {
-    try {
-      if (!content || content.trim() === '') {
-        return [
-          {
-            id: "initial",
-            type: "paragraph",
-            content: [{ type: "text", text: "محتوای خود را اینجا بنویسید..." }]
-          }
-        ] as Block[];
-      }
-      
-      // اگر محتوا HTML است، آن را به متن ساده تبدیل می‌کنیم
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = content;
-      const textContent = tempDiv.textContent || tempDiv.innerText || '';
-      
-      if (textContent.trim() === '') {
-        return [
-          {
-            id: "initial",
-            type: "paragraph", 
-            content: [{ type: "text", text: "محتوای خود را اینجا بنویسید..." }]
-          }
-        ] as Block[];
-      }
-
-      // تقسیم متن به پاراگراف‌ها
-      const paragraphs = textContent.split('\n').filter(p => p.trim() !== '');
-      
-      return paragraphs.map((paragraph, index) => ({
-        id: `block-${index}`,
-        type: "paragraph" as const,
-        content: [{ type: "text", text: paragraph.trim() }]
-      })) as Block[];
-
-    } catch (error) {
-      console.error('Error parsing content:', error);
-      return [
-        {
-          id: "error",
-          type: "paragraph",
-          content: [{ type: "text", text: "محتوای خود را اینجا بنویسید..." }]
-        }
-      ] as Block[];
+  // تبدیل محتوای Markdown به Blocks
+  const parseMarkdownToBlocks = (markdown: string): Block[] => {
+    if (!markdown || markdown.trim() === '') {
+      return [{
+        id: "initial",
+        type: "paragraph",
+        content: [{ type: "text", text: "محتوای خود را اینجا بنویسید..." }]
+      }] as Block[];
     }
-  }, [content]);
+
+    const lines = markdown.split('\n');
+    const blocks: Block[] = [];
+    let currentParagraph = '';
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine === '') {
+        if (currentParagraph) {
+          blocks.push({
+            id: `block-${blocks.length}`,
+            type: "paragraph",
+            content: [{ type: "text", text: currentParagraph.trim() }]
+          } as Block);
+          currentParagraph = '';
+        }
+        continue;
+      }
+
+      // Headers
+      if (trimmedLine.startsWith('### ')) {
+        if (currentParagraph) {
+          blocks.push({
+            id: `block-${blocks.length}`,
+            type: "paragraph",
+            content: [{ type: "text", text: currentParagraph.trim() }]
+          } as Block);
+          currentParagraph = '';
+        }
+        blocks.push({
+          id: `block-${blocks.length}`,
+          type: "heading",
+          props: { level: 3 },
+          content: [{ type: "text", text: trimmedLine.substring(4) }]
+        } as Block);
+      } else if (trimmedLine.startsWith('## ')) {
+        if (currentParagraph) {
+          blocks.push({
+            id: `block-${blocks.length}`,
+            type: "paragraph",
+            content: [{ type: "text", text: currentParagraph.trim() }]
+          } as Block);
+          currentParagraph = '';
+        }
+        blocks.push({
+          id: `block-${blocks.length}`,
+          type: "heading",
+          props: { level: 2 },
+          content: [{ type: "text", text: trimmedLine.substring(3) }]
+        } as Block);
+      } else if (trimmedLine.startsWith('# ')) {
+        if (currentParagraph) {
+          blocks.push({
+            id: `block-${blocks.length}`,
+            type: "paragraph",
+            content: [{ type: "text", text: currentParagraph.trim() }]
+          } as Block);
+          currentParagraph = '';
+        }
+        blocks.push({
+          id: `block-${blocks.length}`,
+          type: "heading",
+          props: { level: 1 },
+          content: [{ type: "text", text: trimmedLine.substring(2) }]
+        } as Block);
+      } else if (trimmedLine.startsWith('```')) {
+        // Code blocks - ignore for now in this simple parser
+        currentParagraph += line + '\n';
+      } else {
+        currentParagraph += line + '\n';
+      }
+    }
+
+    if (currentParagraph.trim()) {
+      blocks.push({
+        id: `block-${blocks.length}`,
+        type: "paragraph",
+        content: [{ type: "text", text: currentParagraph.trim() }]
+      } as Block);
+    }
+
+    return blocks.length > 0 ? blocks : [{
+      id: "initial",
+      type: "paragraph",
+      content: [{ type: "text", text: "محتوای خود را اینجا بنویسید..." }]
+    }] as Block[];
+  };
 
   // ایجاد editor instance
   const editor = useCreateBlockNote({
-    initialContent: initialBlocks,
+    initialContent: parseMarkdownToBlocks(content),
   });
+
+  // به‌روزرسانی محتوای editor وقتی prop content تغییر کند
+  useEffect(() => {
+    const newBlocks = parseMarkdownToBlocks(content);
+    editor.replaceBlocks(editor.document, newBlocks);
+  }, [content, editor]);
 
   const handleSave = async () => {
     try {
       const blocks = editor.document;
-      const htmlContent = await editor.blocksToHTMLLossy(blocks);
-      onChange(htmlContent);
+      const markdownContent = await editor.blocksToMarkdownLossy(blocks);
+      onChange(markdownContent);
       setHasUnsavedChanges(false);
       toast({
         title: "ذخیره شد",

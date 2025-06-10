@@ -11,29 +11,66 @@ interface MarkdownRendererProps {
 const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
   // پردازش محتوای Markdown برای نمایش HTML
   const processMarkdown = (text: string) => {
+    let processedText = text;
+    
     // تبدیل headings
-    text = text.replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-8 mb-4 text-foreground">$1</h3>');
-    text = text.replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-10 mb-6 text-foreground">$1</h2>');
-    text = text.replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-0 mb-8 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">$1</h1>');
+    processedText = processedText.replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-8 mb-4 text-foreground">$1</h3>');
+    processedText = processedText.replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-10 mb-6 text-foreground">$1</h2>');
+    processedText = processedText.replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-0 mb-8 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">$1</h1>');
     
     // تبدیل کدهای inline
-    text = text.replace(/`([^`]+)`/g, '<code class="bg-muted px-2 py-1 rounded text-sm font-mono">$1</code>');
+    processedText = processedText.replace(/`([^`]+)`/g, '<code class="bg-muted px-2 py-1 rounded text-sm font-mono">$1</code>');
     
     // تبدیل متن Bold
-    text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
+    processedText = processedText.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
     
     // تبدیل لیست‌ها
-    text = text.replace(/^- (.*$)/gim, '<li class="mb-2">$1</li>');
-    text = text.replace(/^(\d+)\. (.*$)/gim, '<li class="mb-2">$2</li>');
+    const lines = processedText.split('\n');
+    const processedLines = [];
+    let inList = false;
     
-    // تبدیل blockquote
-    text = text.replace(/^> (.*$)/gim, '<blockquote class="border-r-4 border-primary pr-4 py-2 my-4 bg-muted/50 rounded-r">$1</blockquote>');
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine.match(/^- /)) {
+        if (!inList) {
+          processedLines.push('<ul class="list-disc list-inside space-y-2 my-4">');
+          inList = true;
+        }
+        processedLines.push(`<li class="mb-2">${trimmedLine.substring(2)}</li>`);
+      } else if (trimmedLine.match(/^\d+\. /)) {
+        if (!inList) {
+          processedLines.push('<ol class="list-decimal list-inside space-y-2 my-4">');
+          inList = true;
+        }
+        const match = trimmedLine.match(/^\d+\. (.*)$/);
+        if (match) {
+          processedLines.push(`<li class="mb-2">${match[1]}</li>`);
+        }
+      } else {
+        if (inList) {
+          processedLines.push('</ul>');
+          inList = false;
+        }
+        
+        // تبدیل blockquote
+        if (trimmedLine.startsWith('> ')) {
+          processedLines.push(`<blockquote class="border-r-4 border-primary pr-4 py-2 my-4 bg-muted/50 rounded-r">${trimmedLine.substring(2)}</blockquote>`);
+        } else if (trimmedLine === '') {
+          processedLines.push('<br>');
+        } else if (!trimmedLine.startsWith('<h') && !trimmedLine.startsWith('<blockquote')) {
+          processedLines.push(`<p class="mb-4 leading-7 text-foreground/90">${line}</p>`);
+        } else {
+          processedLines.push(line);
+        }
+      }
+    }
     
-    // تبدیل پاراگراف‌ها
-    text = text.replace(/\n\n/g, '</p><p class="mb-4 leading-7 text-foreground/90">');
-    text = '<p class="mb-4 leading-7 text-foreground/90">' + text + '</p>';
+    if (inList) {
+      processedLines.push('</ul>');
+    }
     
-    return text;
+    return processedLines.join('\n');
   };
 
   const renderCodeBlock = (code: string, language: string) => {
