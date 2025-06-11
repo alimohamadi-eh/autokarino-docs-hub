@@ -3,6 +3,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface MarkdownRendererProps {
   content: string;
@@ -24,41 +32,102 @@ const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
     // تبدیل متن Bold
     processedText = processedText.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
     
-    // تبدیل لیست‌ها
+    // تبدیل متن Italic
+    processedText = processedText.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+    
+    // تبدیل strikethrough
+    processedText = processedText.replace(/~~(.*?)~~/g, '<del class="line-through">$1</del>');
+    
+    // تبدیل لینک‌ها
+    processedText = processedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:underline">$1</a>');
+
+    // پردازش خط به خط برای لیست‌ها و سایر عناصر
     const lines = processedText.split('\n');
     const processedLines = [];
     let inList = false;
+    let inOrderedList = false;
+    let inTable = false;
+    let tableHeaders = [];
+    let tableRows = [];
     
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       const trimmedLine = line.trim();
       
-      if (trimmedLine.match(/^- /)) {
+      // پردازش جداول
+      if (trimmedLine.includes('|') && trimmedLine.split('|').length > 2) {
+        if (!inTable) {
+          inTable = true;
+          tableHeaders = trimmedLine.split('|').map(h => h.trim()).filter(h => h);
+          continue;
+        } else if (trimmedLine.match(/^\|[\s\-\|:]+\|$/)) {
+          // خط جداکننده header - نادیده بگیر
+          continue;
+        } else {
+          // سطر داده جدول
+          const cells = trimmedLine.split('|').map(c => c.trim()).filter(c => c);
+          tableRows.push(cells);
+          continue;
+        }
+      } else if (inTable) {
+        // پایان جدول
+        processedLines.push(renderTable(tableHeaders, tableRows));
+        inTable = false;
+        tableHeaders = [];
+        tableRows = [];
+      }
+      
+      // پردازش لیست‌های غیر مرتب
+      if (trimmedLine.match(/^[\-\*\+] /)) {
         if (!inList) {
-          processedLines.push('<ul class="list-disc list-inside space-y-2 my-4">');
+          if (inOrderedList) {
+            processedLines.push('</ol>');
+            inOrderedList = false;
+          }
+          processedLines.push('<ul class="list-disc list-inside space-y-2 my-4 mr-6">');
           inList = true;
         }
         processedLines.push(`<li class="mb-2">${trimmedLine.substring(2)}</li>`);
-      } else if (trimmedLine.match(/^\d+\. /)) {
-        if (!inList) {
-          processedLines.push('<ol class="list-decimal list-inside space-y-2 my-4">');
-          inList = true;
+      } 
+      // پردازش لیست‌های مرتب
+      else if (trimmedLine.match(/^\d+\. /)) {
+        if (!inOrderedList) {
+          if (inList) {
+            processedLines.push('</ul>');
+            inList = false;
+          }
+          processedLines.push('<ol class="list-decimal list-inside space-y-2 my-4 mr-6">');
+          inOrderedList = true;
         }
         const match = trimmedLine.match(/^\d+\. (.*)$/);
         if (match) {
           processedLines.push(`<li class="mb-2">${match[1]}</li>`);
         }
       } else {
+        // بستن لیست‌ها اگر باز باشند
         if (inList) {
           processedLines.push('</ul>');
           inList = false;
         }
+        if (inOrderedList) {
+          processedLines.push('</ol>');
+          inOrderedList = false;
+        }
         
-        // تبدیل blockquote
+        // پردازش blockquote
         if (trimmedLine.startsWith('> ')) {
-          processedLines.push(`<blockquote class="border-r-4 border-primary pr-4 py-2 my-4 bg-muted/50 rounded-r">${trimmedLine.substring(2)}</blockquote>`);
-        } else if (trimmedLine === '') {
+          processedLines.push(`<blockquote class="border-r-4 border-primary pr-4 py-2 my-4 bg-muted/50 rounded-r italic">${trimmedLine.substring(2)}</blockquote>`);
+        }
+        // خط افقی
+        else if (trimmedLine.match(/^[\-\*]{3,}$/)) {
+          processedLines.push('<hr class="my-8 border-border">');
+        }
+        // خطوط خالی
+        else if (trimmedLine === '') {
           processedLines.push('<br>');
-        } else if (!trimmedLine.startsWith('<h') && !trimmedLine.startsWith('<blockquote')) {
+        } 
+        // متن عادی
+        else if (!trimmedLine.startsWith('<h') && !trimmedLine.startsWith('<blockquote')) {
           processedLines.push(`<p class="mb-4 leading-7 text-foreground/90">${line}</p>`);
         } else {
           processedLines.push(line);
@@ -66,11 +135,40 @@ const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
       }
     }
     
+    // بستن لیست‌ها و جداول در انتها
     if (inList) {
       processedLines.push('</ul>');
     }
+    if (inOrderedList) {
+      processedLines.push('</ol>');
+    }
+    if (inTable) {
+      processedLines.push(renderTable(tableHeaders, tableRows));
+    }
     
     return processedLines.join('\n');
+  };
+
+  // تابع برای render کردن جدول
+  const renderTable = (headers: string[], rows: string[][]) => {
+    return `
+      <div class="my-6 overflow-x-auto">
+        <table class="w-full border-collapse border border-border rounded-lg">
+          <thead class="bg-muted/50">
+            <tr>
+              ${headers.map(header => `<th class="border border-border px-4 py-2 text-right font-semibold">${header}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(row => `
+              <tr class="hover:bg-muted/30">
+                ${row.map(cell => `<td class="border border-border px-4 py-2 text-right">${cell}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   };
 
   const renderCodeBlock = (code: string, language: string) => {
@@ -97,7 +195,7 @@ const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
             </svg>
           </Button>
         </div>
-        <pre className="text-sm text-slate-300 overflow-x-auto">
+        <pre className="text-sm text-slate-300 overflow-x-auto" dir="ltr">
           <code>{code}</code>
         </pre>
       </div>
