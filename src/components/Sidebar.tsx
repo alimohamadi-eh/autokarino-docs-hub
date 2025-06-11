@@ -1,71 +1,66 @@
 
 import { useDocs } from "@/contexts/DocsContext";
-import { cn } from "@/lib/utils";
 import NavigationTree from "./NavigationTree";
-import PageCreationModal from "./PageCreationModal";
-import { Plus, FolderPlus, FileText } from "lucide-react";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import SearchInput from "./SearchInput";
+import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   isOpen: boolean;
 }
 
 const Sidebar = ({ isOpen }: SidebarProps) => {
-  const { activeTab, navigationData, isEditMode } = useDocs();
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const { 
+    activeTab, 
+    navigationData, 
+    activePage, 
+    setActivePage,
+    activeVersion 
+  } = useDocs();
+
+  const currentNavigation = navigationData[activeTab] || [];
 
   return (
-    <aside
+    <aside 
       className={cn(
-        "w-80 bg-sidebar border-l border-sidebar-border transition-all duration-300 overflow-hidden",
-        isOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0 lg:w-0"
+        "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-l border-border transition-all duration-300 flex flex-col",
+        isOpen ? "w-80" : "w-0 overflow-hidden"
       )}
     >
-      <div className="h-full overflow-y-auto p-4">
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-sidebar-foreground">
-              {activeTab === 'program' && '📖 راهنمای برنامه'}
-              {activeTab === 'api' && '🔌 مستندات API'}
-              {activeTab === 'app' && '📱 راهنمای اپلیکیشن'}
-            </h2>
-            {isEditMode && (
-              <Button
-                onClick={() => setShowCreateModal(true)}
-                variant="ghost"
-                size="sm"
-                className="p-1 h-8 w-8"
-                title="صفحه جدید"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            )}
+      {isOpen && (
+        <>
+          {/* Search Section */}
+          <div className="p-4 border-b border-border">
+            <SearchInput 
+              placeholder="جستجو در مستندات..."
+              className="w-full"
+            />
           </div>
-          <div className="h-px bg-gradient-to-l from-sidebar-border to-transparent" />
-        </div>
 
-        {isEditMode && (
-          <div className="mb-4 space-y-2">
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              variant="outline"
-              size="sm"
-              className="w-full justify-start gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              صفحه جدید
-            </Button>
+          {/* Navigation Section */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4">
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                  مستندات {activeVersion}
+                </h3>
+              </div>
+              
+              <NavigationTree
+                items={currentNavigation}
+                activePage={activePage}
+                onPageSelect={setActivePage}
+              />
+            </div>
           </div>
-        )}
 
-        <NavigationTree items={navigationData[activeTab] || []} />
-
-        <PageCreationModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-        />
-      </div>
+          {/* Footer info */}
+          <div className="p-4 border-t border-border">
+            <p className="text-xs text-muted-foreground text-center">
+              کلید میانبر جستجو: Ctrl+K
+            </p>
+          </div>
+        </>
+      )}
     </aside>
   );
 };
