@@ -1,6 +1,5 @@
 
 import { useDocs } from "@/contexts/DocsContext";
-import MarkdownRenderer from "./MarkdownRenderer";
 import Breadcrumb from "./Breadcrumb";
 import BlockNoteEditor from "./BlockNoteEditor";
 import { useEffect, useState } from "react";
@@ -19,9 +18,7 @@ const ContentArea = () => {
 
   // وقتی صفحه فعال تغییر کند، editor را به‌روزرسانی کن
   useEffect(() => {
-    if (isEditMode) {
-      setEditorKey(prev => prev + 1);
-    }
+    setEditorKey(prev => prev + 1);
   }, [activePage, isEditMode]);
 
   const handleContentChange = (content: string) => {
@@ -45,25 +42,22 @@ const ContentArea = () => {
 
   return (
     <main className="flex-1 overflow-auto" dir="rtl">
-      {!isEditMode ? (
-        <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-6">
+        {!isEditMode && (
           <div className="mb-6">
             <Breadcrumb />
           </div>
-          
-          <article className="prose prose-lg max-w-none" dir="rtl">
-            <MarkdownRenderer content={pageContent} />
-          </article>
-        </div>
-      ) : (
+        )}
+        
         <BlockNoteEditor
           key={editorKey}
           content={pageContent}
           onChange={handleContentChange}
           title={pageTitle}
           onTitleChange={handleTitleChange}
+          readonly={!isEditMode}
         />
-      )}
+      </div>
     </main>
   );
 };

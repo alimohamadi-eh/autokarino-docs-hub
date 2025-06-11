@@ -14,9 +14,16 @@ interface BlockNoteEditorProps {
   onChange: (content: string) => void;
   title: string;
   onTitleChange: (title: string) => void;
+  readonly?: boolean;
 }
 
-const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: BlockNoteEditorProps) => {
+const BlockNoteEditorComponent = ({ 
+  content, 
+  onChange, 
+  title, 
+  onTitleChange, 
+  readonly = false 
+}: BlockNoteEditorProps) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const { toast } = useToast();
 
@@ -121,6 +128,7 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
   // ایجاد editor instance
   const editor = useCreateBlockNote({
     initialContent: parseMarkdownToBlocks(content),
+    editable: !readonly,
   });
 
   // به‌روزرسانی محتوای editor وقتی prop content تغییر کند
@@ -129,7 +137,14 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
     editor.replaceBlocks(editor.document, newBlocks);
   }, [content, editor]);
 
+  // به‌روزرسانی حالت editable وقتی readonly تغییر کند
+  useEffect(() => {
+    editor.isEditable = !readonly;
+  }, [readonly, editor]);
+
   const handleSave = async () => {
+    if (readonly) return;
+    
     try {
       const blocks = editor.document;
       const markdownContent = await editor.blocksToMarkdownLossy(blocks);
@@ -150,35 +165,51 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
   };
 
   const handleEditorChange = () => {
-    setHasUnsavedChanges(true);
+    if (!readonly) {
+      setHasUnsavedChanges(true);
+    }
+  };
+
+  const handleTitleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!readonly) {
+      onTitleChange(e.target.value);
+    }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6" dir="rtl">
+    <div className="w-full" dir="rtl">
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
-            className="flex-1 text-3xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
-            placeholder="عنوان صفحه را وارد کنید..."
-            dir="rtl"
-          />
-          <Button 
-            onClick={handleSave}
-            disabled={!hasUnsavedChanges}
-            className="mr-4"
-            size="sm"
-          >
-            <Save className="w-4 h-4 ml-2" />
-            ذخیره
-          </Button>
+          {readonly ? (
+            <h1 className="flex-1 text-3xl font-bold text-foreground" dir="rtl">
+              {title}
+            </h1>
+          ) : (
+            <input
+              type="text"
+              value={title}
+              onChange={handleTitleInputChange}
+              className="flex-1 text-3xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
+              placeholder="عنوان صفحه را وارد کنید..."
+              dir="rtl"
+            />
+          )}
+          {!readonly && (
+            <Button 
+              onClick={handleSave}
+              disabled={!hasUnsavedChanges}
+              className="mr-4"
+              size="sm"
+            >
+              <Save className="w-4 h-4 ml-2" />
+              ذخیره
+            </Button>
+          )}
         </div>
         <div className="h-px bg-gradient-to-l from-border to-transparent" />
       </div>
 
-      <div className="border border-border rounded-lg overflow-hidden">
+      <div className={`border border-border rounded-lg overflow-hidden ${readonly ? 'bg-muted/20' : ''}`}>
         <BlockNoteView 
           editor={editor} 
           onChange={handleEditorChange}
@@ -186,7 +217,7 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
         />
       </div>
       
-      {hasUnsavedChanges && (
+      {!readonly && hasUnsavedChanges && (
         <div className="fixed bottom-4 left-4 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded-md">
           تغییرات ذخیره نشده دارید
         </div>
@@ -204,6 +235,7 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
           .bn-editor .ProseMirror {
             direction: rtl;
             text-align: right;
+            ${readonly ? 'cursor: default;' : ''}
           }
           .bn-editor .ProseMirror p {
             text-align: right;
@@ -215,6 +247,26 @@ const BlockNoteEditorComponent = ({ content, onChange, title, onTitleChange }: B
             text-align: right;
             direction: rtl;
           }
+          ${readonly ? `
+            .bn-editor .ProseMirror * {
+              cursor: default !important;
+            }
+            .bn-editor .bn-block-content {
+              pointer-events: none;
+            }
+            .bn-editor .bn-block-outer {
+              pointer-events: none;
+            }
+            .bn-side-menu {
+              display: none !important;
+            }
+            .bn-formatting-toolbar {
+              display: none !important;
+            }
+            .bn-slash-menu {
+              display: none !important;
+            }
+          ` : ''}
         `
       }} />
     </div>
