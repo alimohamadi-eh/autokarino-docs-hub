@@ -47,8 +47,8 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
               
               <NavigationTree
                 items={currentNavigation}
-                activePage={activePage}
-                onPageSelect={setActivePage}
+                activeSlug={activePage}
+                onItemClick={setActivePage}
               />
             </div>
           </div>
