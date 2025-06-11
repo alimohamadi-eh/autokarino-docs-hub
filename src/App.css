@@ -3,9 +3,10 @@
   max-width: none;
   margin: 0;
   padding: 0;
-  text-align: left;
+  text-align: right;
   width: 100%;
   min-height: 100vh;
+  direction: rtl;
 }
 
 .logo {
@@ -42,4 +43,28 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* اضافه کردن استایل‌های راست‌چین برای محتوا */
+.prose {
+  direction: rtl;
+  text-align: right;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  text-align: right;
+}
+
+.prose p, .prose li {
+  text-align: right;
+}
+
+.prose code {
+  direction: ltr;
+  text-align: left;
+}
+
+.prose pre {
+  direction: ltr;
+  text-align: left;
 }

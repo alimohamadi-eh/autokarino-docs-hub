@@ -46,6 +46,7 @@ export const useSearch = () => {
       }
     });
     
+    console.log('🔍 آیتم‌های قابل جستجو:', items);
     return items;
   }, [pageContents, activeVersion, tabs]);
 
@@ -63,7 +64,7 @@ export const useSearch = () => {
     return snippet;
   }, []);
 
-  // تابع جستجو ساده
+  // تابع جستجو ساده و بهبود یافته
   const search = useCallback((searchQuery: string): SearchResult[] => {
     if (!searchQuery.trim() || searchQuery.length < 2) {
       return [];
@@ -72,8 +73,10 @@ export const useSearch = () => {
     setIsSearching(true);
     
     try {
-      const normalizedQuery = searchQuery.toLowerCase();
+      const normalizedQuery = searchQuery.toLowerCase().trim();
       const results: SearchResult[] = [];
+      
+      console.log(`🔍 جستجو برای: "${normalizedQuery}" در ${searchableItems.length} آیتم`);
       
       searchableItems.forEach(item => {
         const titleMatch = item.title.toLowerCase().includes(normalizedQuery);
@@ -106,6 +109,7 @@ export const useSearch = () => {
       // مرتب‌سازی بر اساس امتیاز
       results.sort((a, b) => (b.score || 0) - (a.score || 0));
       
+      console.log(`✅ ${results.length} نتیجه پیدا شد`);
       return results.slice(0, 10); // محدود کردن به 10 نتیجه
     } catch (error) {
       console.error('خطا در جستجو:', error);

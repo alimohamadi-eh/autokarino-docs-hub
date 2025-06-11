@@ -44,14 +44,14 @@ const ContentArea = () => {
   const pageTitle = currentPage?.title || `صفحه ${activePage}`;
 
   return (
-    <main className="flex-1 overflow-auto">
+    <main className="flex-1 overflow-auto" dir="rtl">
       {!isEditMode ? (
         <div className="max-w-4xl mx-auto p-6">
           <div className="mb-6">
             <Breadcrumb />
           </div>
           
-          <article className="prose prose-lg max-w-none">
+          <article className="prose prose-lg max-w-none" dir="rtl">
             <MarkdownRenderer content={pageContent} />
           </article>
         </div>

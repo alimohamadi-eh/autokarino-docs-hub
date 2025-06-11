@@ -169,7 +169,6 @@ const NavigationTree = ({ items, level = 0 }: NavigationTreeProps) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['intro', 'automation']));
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedParent, setSelectedParent] = useState<string | undefined>();
-  const [sortableItems, setSortableItems] = useState(items);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -223,28 +222,33 @@ const NavigationTree = ({ items, level = 0 }: NavigationTreeProps) => {
       if (movePageToFolder) {
         movePageToFolder(activeItem.slug, overItem.slug);
       }
-    } else {
-      // در غیر این صورت، ترتیب آیتم‌ها را تغییر بده
-      const oldIndex = items.findIndex(item => item.slug === active.id);
-      const newIndex = items.findIndex(item => item.slug === over.id);
-      
-      const newItems = arrayMove(items, oldIndex, newIndex);
-      setSortableItems(newItems);
     }
   };
 
-  // استفاده از آیتم‌های اصلی یا آیتم‌های مرتب شده
-  const displayItems = sortableItems.length > 0 ? sortableItems : items;
-
   return (
     <div className={cn("space-y-1", level > 0 && "mr-4")}>
+      {/* دکمه ایجاد صفحه/پوشه جدید */}
+      {level === 0 && isEditMode && (
+        <div className="mb-4">
+          <Button
+            onClick={() => setShowCreateModal(true)}
+            variant="outline"
+            size="sm"
+            className="w-full flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            ایجاد صفحه جدید
+          </Button>
+        </div>
+      )}
+
       <DndContext 
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={displayItems.map(item => item.slug)} strategy={verticalListSortingStrategy}>
-          {displayItems.map((item) => {
+        <SortableContext items={items.map(item => item.slug)} strategy={verticalListSortingStrategy}>
+          {items.map((item) => {
             const isExpanded = expandedItems.has(item.slug);
             const isActive = activePage === item.slug;
 
