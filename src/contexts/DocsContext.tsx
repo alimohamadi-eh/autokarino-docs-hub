@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { TabConfig } from '@/types/tabs';
 import { 
@@ -47,6 +46,7 @@ interface DocsContextType {
   updatePageContent: (slug: string, content: string, title?: string) => void;
   createNewPage: (title: string, tab: string, parentSlug?: string, type?: "page" | "folder", fileName?: string) => string;
   deletePage: (slug: string) => void;
+  movePageToFolder: (pageSlug: string, folderSlug: string) => void;
   tabs: TabConfig[];
   addTab: (label: string, icon: string) => void;
   updateTab: (id: string, label: string, icon: string) => void;
@@ -419,6 +419,90 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
     }
   };
 
+  const movePageToFolder = (pageSlug: string, folderSlug: string) => {
+    console.log(`📁 جابجایی صفحه ${pageSlug} به پوشه ${folderSlug}`);
+    
+    const page = pageContents[pageSlug];
+    if (!page || !page.filePath) {
+      console.error('صفحه یا مسیر فایل پیدا نشد');
+      return;
+    }
+
+    // ایجاد مسیر جدید برای فایل
+    const pathParts = page.filePath.split('/');
+    const fileName = pathParts[pathParts.length - 1];
+    const newFilePath = `docs/${activeVersion}/${page.tab}/${folderSlug}/${fileName}`;
+    
+    try {
+      // خواندن محتوای فایل قدیمی
+      const content = readMdFile(page.filePath);
+      if (content) {
+        // ایجاد فایل در مسیر جدید
+        createMdFile(newFilePath, content);
+        
+        // حذف فایل قدیمی
+        deleteMdFile(page.filePath);
+        
+        // بروزرسانی pageContents
+        setPageContents(prev => ({
+          ...prev,
+          [pageSlug]: {
+            ...prev[pageSlug],
+            filePath: newFilePath
+          }
+        }));
+
+        // بروزرسانی navigation data
+        setNavigationData(prev => {
+          const newNav = { ...prev };
+          const tabNav = newNav[page.tab] || [];
+          
+          // پیدا کردن و حذف صفحه از موقعیت فعلی
+          const removeFromTree = (items: NavigationItem[]): NavigationItem[] => {
+            return items
+              .filter(item => item.slug !== pageSlug)
+              .map(item => ({
+                ...item,
+                children: item.children ? removeFromTree(item.children) : undefined
+              }));
+          };
+
+          // اضافه کردن صفحه به پوشه مقصد
+          const addToFolder = (items: NavigationItem[]): NavigationItem[] => {
+            return items.map(item => {
+              if (item.slug === folderSlug && item.children) {
+                return {
+                  ...item,
+                  children: [
+                    ...item.children,
+                    {
+                      title: page.title,
+                      slug: pageSlug
+                    }
+                  ]
+                };
+              }
+              if (item.children) {
+                return {
+                  ...item,
+                  children: addToFolder(item.children)
+                };
+              }
+              return item;
+            });
+          };
+
+          newNav[page.tab] = addToFolder(removeFromTree(tabNav));
+          return newNav;
+        });
+
+        console.log(`✅ صفحه ${pageSlug} با موفقیت به پوشه ${folderSlug} منتقل شد`);
+      }
+    } catch (error) {
+      console.error('خطا در جابجایی صفحه:', error);
+    }
+  };
+
   // Version management functions
   const addVersion = (version: string) => {
     // Copy files from current version to new version
@@ -483,6 +567,7 @@ export const DocsProvider: React.FC<DocsProviderProps> = ({ children }) => {
     updatePageContent,
     createNewPage,
     deletePage,
+    movePageToFolder,
     tabs,
     addTab,
     updateTab,
@@ -507,3 +592,5 @@ export const useDocs = () => {
   }
   return context;
 };
+
+export default DocsProvider;
