@@ -18,6 +18,17 @@ interface SearchResult extends SearchableItem {
   score?: number;
 }
 
+interface FuseMatch {
+  key: string;
+  indices: [number, number][];
+}
+
+interface FuseResult {
+  item: SearchableItem;
+  matches?: FuseMatch[];
+  score?: number;
+}
+
 export const useSearch = () => {
   const { pageContents, activeVersion, tabs } = useDocs();
   const [query, setQuery] = useState('');
@@ -67,7 +78,7 @@ export const useSearch = () => {
   }, [searchableItems]);
 
   // تابع برای ایجاد snippet از محل یافت‌شده
-  const createSnippet = useCallback((item: SearchableItem, matches: any[]) => {
+  const createSnippet = useCallback((item: SearchableItem, matches: FuseMatch[]) => {
     // پیدا کردن بهترین match در محتوا
     const contentMatch = matches.find(match => match.key === 'content');
     
@@ -98,7 +109,7 @@ export const useSearch = () => {
     setIsSearching(true);
     
     try {
-      const results = fuse.search(searchQuery);
+      const results = fuse.search(searchQuery) as FuseResult[];
       
       const searchResults: SearchResult[] = results.map(result => {
         const item = result.item;
