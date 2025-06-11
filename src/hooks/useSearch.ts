@@ -1,6 +1,5 @@
 
 import { useState, useMemo, useCallback } from 'react';
-import Fuse from 'fuse.js';
 import removeMd from 'remove-markdown';
 import { useDocs } from '@/contexts/DocsContext';
 
@@ -15,17 +14,6 @@ interface SearchableItem {
 
 interface SearchResult extends SearchableItem {
   snippet?: string;
-  score?: number;
-}
-
-interface FuseMatch {
-  key: string;
-  indices: [number, number][];
-}
-
-interface FuseResult {
-  item: SearchableItem;
-  matches?: FuseMatch[];
   score?: number;
 }
 
@@ -61,46 +49,21 @@ export const useSearch = () => {
     return items;
   }, [pageContents, activeVersion, tabs]);
 
-  // تنظیم Fuse.js
-  const fuse = useMemo(() => {
-    return new Fuse(searchableItems, {
-      keys: [
-        { name: 'title', weight: 0.7 },
-        { name: 'content', weight: 0.3 }
-      ],
-      includeMatches: true,
-      includeScore: true,
-      minMatchCharLength: 2,
-      threshold: 0.4, // کمی سخت‌گیرانه‌تر برای نتایج بهتر
-      ignoreLocation: true,
-      findAllMatches: true
-    });
-  }, [searchableItems]);
-
   // تابع برای ایجاد snippet از محل یافت‌شده
-  const createSnippet = useCallback((item: SearchableItem, matches: FuseMatch[]) => {
-    // پیدا کردن بهترین match در محتوا
-    const contentMatch = matches.find(match => match.key === 'content');
+  const createSnippet = useCallback((item: SearchableItem, matchIndex: number) => {
+    const start = Math.max(matchIndex - 40, 0);
+    const end = Math.min(matchIndex + 40, item.content.length);
     
-    if (contentMatch && contentMatch.indices && contentMatch.indices.length > 0) {
-      const firstMatch = contentMatch.indices[0];
-      const start = Math.max(firstMatch[0] - 40, 0);
-      const end = Math.min(firstMatch[1] + 40, item.content.length);
-      
-      let snippet = item.content.slice(start, end);
-      
-      // اضافه کردن ... در ابتدا و انتها در صورت نیاز
-      if (start > 0) snippet = '...' + snippet;
-      if (end < item.content.length) snippet = snippet + '...';
-      
-      return snippet;
-    }
+    let snippet = item.content.slice(start, end);
     
-    // اگر match در عنوان بود، اول محتوا را نمایش بده
-    return item.content.slice(0, 120) + (item.content.length > 120 ? '...' : '');
+    // اضافه کردن ... در ابتدا و انتها در صورت نیاز
+    if (start > 0) snippet = '...' + snippet;
+    if (end < item.content.length) snippet = snippet + '...';
+    
+    return snippet;
   }, []);
 
-  // تابع جستجو
+  // تابع جستجو ساده
   const search = useCallback((searchQuery: string): SearchResult[] => {
     if (!searchQuery.trim() || searchQuery.length < 2) {
       return [];
@@ -109,27 +72,48 @@ export const useSearch = () => {
     setIsSearching(true);
     
     try {
-      const results = fuse.search(searchQuery) as FuseResult[];
+      const normalizedQuery = searchQuery.toLowerCase();
+      const results: SearchResult[] = [];
       
-      const searchResults: SearchResult[] = results.map(result => {
-        const item = result.item;
-        const snippet = createSnippet(item, result.matches || []);
+      searchableItems.forEach(item => {
+        const titleMatch = item.title.toLowerCase().includes(normalizedQuery);
+        const contentMatch = item.content.toLowerCase().includes(normalizedQuery);
         
-        return {
-          ...item,
-          snippet,
-          score: result.score
-        };
+        if (titleMatch || contentMatch) {
+          let score = 0;
+          let snippet = '';
+          
+          // امتیاز بیشتر برای تطبیق در عنوان
+          if (titleMatch) {
+            score += 0.7;
+            snippet = item.content.slice(0, 120) + (item.content.length > 120 ? '...' : '');
+          }
+          
+          if (contentMatch) {
+            score += 0.3;
+            const matchIndex = item.content.toLowerCase().indexOf(normalizedQuery);
+            snippet = createSnippet(item, matchIndex);
+          }
+          
+          results.push({
+            ...item,
+            snippet,
+            score
+          });
+        }
       });
       
-      return searchResults.slice(0, 10); // محدود کردن به 10 نتیجه
+      // مرتب‌سازی بر اساس امتیاز
+      results.sort((a, b) => (b.score || 0) - (a.score || 0));
+      
+      return results.slice(0, 10); // محدود کردن به 10 نتیجه
     } catch (error) {
       console.error('خطا در جستجو:', error);
       return [];
     } finally {
       setIsSearching(false);
     }
-  }, [fuse, createSnippet]);
+  }, [searchableItems, createSnippet]);
 
   return {
     query,
