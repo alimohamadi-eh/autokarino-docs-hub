@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
@@ -128,7 +127,6 @@ const BlockNoteEditorComponent = ({
   // ایجاد editor instance
   const editor = useCreateBlockNote({
     initialContent: parseMarkdownToBlocks(content),
-    editable: !readonly,
   });
 
   // به‌روزرسانی محتوای editor وقتی prop content تغییر کند
