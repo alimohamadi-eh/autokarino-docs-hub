@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
@@ -24,127 +25,69 @@ const BlockNoteEditorComponent = ({
   readonly = false 
 }: BlockNoteEditorProps) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [initialContent, setInitialContent] = useState<Block[] | undefined>(undefined);
   const { toast } = useToast();
-
-  // تبدیل محتوای Markdown به Blocks
-  const parseMarkdownToBlocks = (markdown: string): Block[] => {
-    if (!markdown || markdown.trim() === '') {
-      return [{
-        id: "initial",
-        type: "paragraph",
-        content: [{ type: "text", text: "محتوای خود را اینجا بنویسید..." }]
-      }] as Block[];
-    }
-
-    const lines = markdown.split('\n');
-    const blocks: Block[] = [];
-    let currentParagraph = '';
-
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      
-      if (trimmedLine === '') {
-        if (currentParagraph) {
-          blocks.push({
-            id: `block-${blocks.length}`,
-            type: "paragraph",
-            content: [{ type: "text", text: currentParagraph.trim() }]
-          } as Block);
-          currentParagraph = '';
-        }
-        continue;
-      }
-
-      // Headers
-      if (trimmedLine.startsWith('### ')) {
-        if (currentParagraph) {
-          blocks.push({
-            id: `block-${blocks.length}`,
-            type: "paragraph",
-            content: [{ type: "text", text: currentParagraph.trim() }]
-          } as Block);
-          currentParagraph = '';
-        }
-        blocks.push({
-          id: `block-${blocks.length}`,
-          type: "heading",
-          props: { level: 3 },
-          content: [{ type: "text", text: trimmedLine.substring(4) }]
-        } as Block);
-      } else if (trimmedLine.startsWith('## ')) {
-        if (currentParagraph) {
-          blocks.push({
-            id: `block-${blocks.length}`,
-            type: "paragraph",
-            content: [{ type: "text", text: currentParagraph.trim() }]
-          } as Block);
-          currentParagraph = '';
-        }
-        blocks.push({
-          id: `block-${blocks.length}`,
-          type: "heading",
-          props: { level: 2 },
-          content: [{ type: "text", text: trimmedLine.substring(3) }]
-        } as Block);
-      } else if (trimmedLine.startsWith('# ')) {
-        if (currentParagraph) {
-          blocks.push({
-            id: `block-${blocks.length}`,
-            type: "paragraph",
-            content: [{ type: "text", text: currentParagraph.trim() }]
-          } as Block);
-          currentParagraph = '';
-        }
-        blocks.push({
-          id: `block-${blocks.length}`,
-          type: "heading",
-          props: { level: 1 },
-          content: [{ type: "text", text: trimmedLine.substring(2) }]
-        } as Block);
-      } else if (trimmedLine.startsWith('```')) {
-        // Code blocks - ignore for now in this simple parser
-        currentParagraph += line + '\n';
-      } else {
-        currentParagraph += line + '\n';
-      }
-    }
-
-    if (currentParagraph.trim()) {
-      blocks.push({
-        id: `block-${blocks.length}`,
-        type: "paragraph",
-        content: [{ type: "text", text: currentParagraph.trim() }]
-      } as Block);
-    }
-
-    return blocks.length > 0 ? blocks : [{
-      id: "initial",
-      type: "paragraph",
-      content: [{ type: "text", text: "محتوای خود را اینجا بنویسید..." }]
-    }] as Block[];
-  };
 
   // ایجاد editor instance
   const editor = useCreateBlockNote({
-    initialContent: parseMarkdownToBlocks(content),
+    initialContent: initialContent,
   });
 
-  // به‌روزرسانی محتوای editor وقتی prop content تغییر کند
+  // تبدیل محتوای Markdown به Blocks با استفاده از API رسمی BlockNote
   useEffect(() => {
-    const newBlocks = parseMarkdownToBlocks(content);
-    editor.replaceBlocks(editor.document, newBlocks);
+    const convertMarkdownToBlocks = async () => {
+      try {
+        if (!content || content.trim() === '') {
+          const defaultBlocks: Block[] = [{
+            id: "initial",
+            type: "paragraph",
+            content: [{ type: "text", text: "محتوای خود را اینجا بنویسید..." }]
+          }] as Block[];
+          setInitialContent(defaultBlocks);
+          if (editor) {
+            editor.replaceBlocks(editor.document, defaultBlocks);
+          }
+        } else {
+          // استفاده از tryParseMarkdownToBlocks برای تبدیل markdown به blocks
+          const blocks = await editor.tryParseMarkdownToBlocks(content);
+          setInitialContent(blocks);
+          if (editor && blocks) {
+            editor.replaceBlocks(editor.document, blocks);
+          }
+        }
+      } catch (error) {
+        console.error('Error converting markdown to blocks:', error);
+        // در صورت خطا، محتوای markdown را به صورت plain text نمایش دهیم
+        const fallbackBlocks: Block[] = [{
+          id: "fallback",
+          type: "paragraph",
+          content: [{ type: "text", text: content }]
+        }] as Block[];
+        setInitialContent(fallbackBlocks);
+        if (editor) {
+          editor.replaceBlocks(editor.document, fallbackBlocks);
+        }
+      }
+    };
+
+    if (editor) {
+      convertMarkdownToBlocks();
+    }
   }, [content, editor]);
 
   // به‌روزرسانی حالت editable وقتی readonly تغییر کند
   useEffect(() => {
-    editor.isEditable = !readonly;
+    if (editor) {
+      editor.isEditable = !readonly;
+    }
   }, [readonly, editor]);
 
   const handleSave = async () => {
-    if (readonly) return;
+    if (readonly || !editor) return;
     
     try {
       const blocks = editor.document;
+      // استفاده از blocksToMarkdownLossy برای تبدیل blocks به markdown
       const markdownContent = await editor.blocksToMarkdownLossy(blocks);
       onChange(markdownContent);
       setHasUnsavedChanges(false);
@@ -208,11 +151,13 @@ const BlockNoteEditorComponent = ({
       </div>
 
       <div className={`border border-border rounded-lg overflow-hidden ${readonly ? 'bg-muted/20' : ''}`}>
-        <BlockNoteView 
-          editor={editor} 
-          onChange={handleEditorChange}
-          theme="light"
-        />
+        {editor && (
+          <BlockNoteView 
+            editor={editor} 
+            onChange={handleEditorChange}
+            theme="light"
+          />
+        )}
       </div>
       
       {!readonly && hasUnsavedChanges && (
@@ -242,6 +187,31 @@ const BlockNoteEditorComponent = ({
           .bn-editor .ProseMirror h1,
           .bn-editor .ProseMirror h2, 
           .bn-editor .ProseMirror h3 {
+            text-align: right;
+            direction: rtl;
+          }
+          .bn-editor .ProseMirror ul,
+          .bn-editor .ProseMirror ol {
+            text-align: right;
+            direction: rtl;
+          }
+          .bn-editor .ProseMirror li {
+            text-align: right;
+            direction: rtl;
+          }
+          .bn-editor .ProseMirror blockquote {
+            text-align: right;
+            direction: rtl;
+            border-right: 4px solid #e5e7eb;
+            border-left: none;
+            padding-right: 1rem;
+            padding-left: 0;
+          }
+          .bn-editor .ProseMirror table {
+            direction: rtl;
+          }
+          .bn-editor .ProseMirror td,
+          .bn-editor .ProseMirror th {
             text-align: right;
             direction: rtl;
           }
