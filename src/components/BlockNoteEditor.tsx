@@ -206,6 +206,8 @@ const BlockNoteEditorComponent = ({
             border-left: none;
             padding-right: 1rem;
             padding-left: 0;
+            margin-right: 0;
+            margin-left: 1rem;
           }
           .bn-editor .ProseMirror table {
             direction: rtl;
@@ -214,6 +216,24 @@ const BlockNoteEditorComponent = ({
           .bn-editor .ProseMirror th {
             text-align: right;
             direction: rtl;
+          }
+          /* استایل‌های ویژه برای بلوک‌های کد */
+          .bn-editor .ProseMirror pre,
+          .bn-editor .ProseMirror code,
+          .bn-editor .ProseMirror .bn-code-block,
+          .bn-editor .ProseMirror [data-node-type="codeBlock"] {
+            direction: ltr !important;
+            text-align: left !important;
+            font-family: 'Fira Code', 'Monaco', 'Consolas', 'Courier New', monospace !important;
+          }
+          .bn-editor .ProseMirror pre * {
+            direction: ltr !important;
+            text-align: left !important;
+          }
+          /* اصلاح حاشیه blockquote برای RTL */
+          .dark .bn-editor .ProseMirror blockquote {
+            border-right: 4px solid #374151;
+            border-left: none;
           }
           ${readonly ? `
             .bn-editor .ProseMirror * {
